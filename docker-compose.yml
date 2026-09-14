@@ -1,0 +1,127 @@
+services:
+
+  # Container untuk menjalankan aplikasi Laravel/PHP
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+
+    # Nama container aplikasi
+    container_name: worklogSBK_app
+
+    # Container otomatis dijalankan kembali jika berhenti
+    restart: unless-stopped
+
+    # Folder kerja Laravel di dalam container
+    working_dir: /var/www/html
+
+    # Menghubungkan folder project dengan folder di dalam container
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+
+    # Menghubungkan app ke network Docker project
+    networks:
+      - worklogSBK_network
+
+    # App membutuhkan database dan Redis
+    depends_on:
+      - db
+      - redis
+
+
+  # Container Web Server Nginx
+  webserver:
+    image: nginx:alpine
+
+    # Nama container Nginx
+    container_name: worklogSBK_nginx
+
+    # Container otomatis dijalankan kembali jika berhenti
+    restart: unless-stopped
+
+    # PORT PROJECT
+    # Format:
+    # "PORT_KOMPUTER:PORT_CONTAINER"
+    #
+    # 8001 = port yang digunakan di komputer kamu
+    # 80   = port Nginx di dalam container
+    #
+    # Jadi akses project melalui:
+    # http://localhost:8001
+    ports:
+      - "8001:80"
+
+    # Menghubungkan source Laravel dan konfigurasi Nginx
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+
+    # Menghubungkan Nginx ke network Docker project
+    networks:
+      - worklogSBK_network
+
+    # Nginx membutuhkan container app
+    depends_on:
+      - app
+
+
+  # Container untuk database MySQL
+  db:
+    image: mysql:8.0
+
+    # Nama container database
+    container_name: worklogSBK_db
+
+    # Container otomatis dijalankan kembali jika berhenti
+    restart: unless-stopped
+
+    # Konfigurasi database
+    environment:
+      MYSQL_DATABASE: worklogSBK_db
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_USER: worklogSBK_user
+      MYSQL_PASSWORD: worklogSBK_pass
+
+    # PORT DATABASE MYSQL
+    # 3306 di komputer → 3306 di container
+    #
+    # INI TIDAK PERLU DIUBAH kalau hanya ingin
+    # mengganti port website Laravel.
+    ports:
+      - "3306:3306"
+
+    # Menyimpan data MySQL agar tidak hilang
+    volumes:
+      - worklogSBK_dbdata:/var/lib/mysql
+
+    # Menghubungkan database ke network Docker project
+    networks:
+      - worklogSBK_network
+
+
+  # Container untuk Redis
+  redis:
+    image: redis:alpine
+
+    # Nama container Redis
+    container_name: worklogSBK_redis
+
+    # Container otomatis dijalankan kembali jika berhenti
+    restart: unless-stopped
+
+    # Menghubungkan Redis ke network Docker project
+    networks:
+      - worklogSBK_network
+
+
+# Network khusus untuk project Worklog SBK
+networks:
+  worklogSBK_network:
+    driver: bridge
+
+
+# Volume untuk menyimpan data database MySQL
+volumes:
+  worklogSBK_dbdata:
+    driver: local
