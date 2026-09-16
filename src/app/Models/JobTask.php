@@ -37,4 +37,11 @@ class JobTask extends Model
     {
         return $this->hasMany(DailyReport::class);
     }
+
+    protected function casts(): array
+    {
+        return [
+            'deadline' => 'date',
+        ];
+    }
 }
