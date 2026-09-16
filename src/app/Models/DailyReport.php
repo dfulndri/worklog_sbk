@@ -24,4 +24,11 @@ class DailyReport extends Model
     {
         return $this->belongsTo(JobTask::class);
     }
+
+    protected function casts(): array
+    {
+        return [
+            'report_date' => 'date',
+        ];
+    }
 }
