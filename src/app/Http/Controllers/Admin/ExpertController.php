@@ -3,63 +3,56 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Expert;
 use Illuminate\Http\Request;
 
 class ExpertController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $experts = Expert::latest()->paginate(10);
+
+        return view('admin.experts.index', compact('experts'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return view('admin.experts.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'field' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        Expert::create($data);
+
+        return redirect()->route('admin.experts.index')->with('success', 'Data Tenaga Ahli berhasil ditambahkan.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function edit(Expert $expert)
     {
-        //
+        return view('admin.experts.edit', compact('expert'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function update(Request $request, Expert $expert)
     {
-        //
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'field' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $expert->update($data);
+
+        return redirect()->route('admin.experts.index')->with('success', 'Data Tenaga Ahli berhasil diperbarui.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function destroy(Expert $expert)
     {
-        //
-    }
+        $expert->delete();
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return back()->with('success', 'Data Tenaga Ahli berhasil dihapus.');
     }
 }
