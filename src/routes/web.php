@@ -35,6 +35,12 @@ Route::middleware(['auth', 'role:admin'])
 
         Route::get('/reports', [Admin\ReportController::class, 'index'])
             ->name('reports.index');
+
+        Route::get('/reports/export-csv', [Admin\ReportController::class, 'exportCsv'])
+            ->name('reports.export-csv');
+
+        Route::get('/reports/export-pdf', [Admin\ReportController::class, 'exportPdf'])
+            ->name('reports.export-pdf');
     });
 
 Route::middleware(['auth', 'role:karyawan'])

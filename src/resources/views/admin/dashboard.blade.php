@@ -65,6 +65,83 @@
         </div>
     </section>
 
+    <section class="row g-3 mt-1">
+        <div class="col-12 col-xl-4">
+            <div class="panel h-100">
+                <h2 class="h5 mb-3 section-title"><i class="bi bi-pie-chart" aria-hidden="true"></i><span>Pekerjaan per
+                        Tahapan</span></h2>
+                @php
+                    $stages = ['draft' => 'Draft', 'revisi' => 'Revisi', 'sidang' => 'Sidang', 'final' => 'Final'];
+                    $stageColor = [
+                        'draft' => 'secondary',
+                        'revisi' => 'warning',
+                        'sidang' => 'info',
+                        'final' => 'success',
+                    ];
+                @endphp
+                @foreach ($stages as $key => $label)
+                    @php $count = $stageBreakdown[$key] ?? 0; @endphp
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge text-bg-{{ $stageColor[$key] }}">{{ $label }}</span>
+                        <strong>{{ $count }}</strong>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-8">
+            <div class="panel h-100">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="h5 mb-1 section-title"><i class="bi bi-alarm" aria-hidden="true"></i><span>Deadline
+                                Mendekat (7 hari)</span></h2>
+                        <p class="text-muted mb-0">Pekerjaan yang belum final dan deadline-nya sudah dekat.</p>
+                    </div>
+                </div>
+                @forelse ($upcomingDeadlines as $job)
+                    <div class="activity-item">
+                        <span class="activity-dot bg-danger"></span>
+                        <div class="d-flex justify-content-between w-100">
+                            <div>
+                                <p class="mb-1 fw-semibold">{{ $job->client->name ?? '-' }} —
+                                    {{ $job->employee->user->name ?? '-' }}</p>
+                                <p class="text-muted small mb-0">Tahapan: {{ ucfirst($job->stage) }}</p>
+                            </div>
+                            <span
+                                class="badge text-bg-danger align-self-center">{{ $job->deadline->format('d M Y') }}</span>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-muted text-center py-3 mb-0">Tidak ada pekerjaan dengan deadline dekat.</p>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    <section class="panel mt-3">
+        <div class="panel-header">
+            <div>
+                <h2 class="h5 mb-1 section-title"><i class="bi bi-activity" aria-hidden="true"></i><span>Aktivitas Daily
+                        Report Terbaru</span></h2>
+                <p class="text-muted mb-0">5 laporan terakhir dari seluruh karyawan.</p>
+            </div>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.reports.index') }}">Lihat Semua Laporan</a>
+        </div>
+        @forelse ($recentReports as $report)
+            <div class="activity-item">
+                <span class="activity-dot bg-primary"></span>
+                <div>
+                    <p class="mb-1 fw-semibold">{{ $report->user->name ?? '-' }} —
+                        {{ $report->jobTask->client->name ?? '-' }}</p>
+                    <p class="text-muted small mb-0">{{ $report->report_date->format('d M Y') }} —
+                        {{ Str::limit($report->description, 100) }}</p>
+                </div>
+            </div>
+        @empty
+            <p class="text-muted text-center py-3 mb-0">Belum ada aktivitas daily report.</p>
+        @endforelse
+    </section>
+
     <section class="panel mt-3">
         <div class="panel-header">
             <div>
