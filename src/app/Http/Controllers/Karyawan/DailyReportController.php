@@ -5,18 +5,27 @@ namespace App\Http\Controllers\Karyawan;
 use App\Http\Controllers\Controller;
 use App\Models\DailyReport;
 use App\Models\JobTask;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DailyReportController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $reports = DailyReport::with(['jobTask.client', 'jobTask.documentType'])
             ->where('user_id', Auth::id())
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('description', 'like', "%{$search}%")
+                        ->orWhereHas('jobTask.client', fn($c) => $c->where('name', 'like', "%{$search}%"));
+                });
+            })
             ->latest('report_date')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('karyawan.daily-reports.index', compact('reports'));
     }
@@ -66,6 +75,18 @@ class DailyReportController extends Controller
 
             // Progress pekerjaan selalu mengikuti laporan terbaru.
             $job->update(['progress' => $data['progress']]);
+
+            // Beri tahu semua admin ada aktivitas daily report baru.
+            $job->loadMissing('client', 'documentType');
+            $karyawanName = Auth::user()->name;
+
+            User::where('role', 'admin')->get()->each(function (User $admin) use ($karyawanName, $data, $job) {
+                $admin->pushNotification(
+                    title: "{$karyawanName} melaporkan progress {$data['progress']}%",
+                    message: "{$job->client->name} — {$job->documentType->name}",
+                    url: route('admin.jobs.show', $job),
+                );
+            });
         });
 
         return redirect()->route('karyawan.daily-reports.index')->with('success', 'Daily report berhasil disimpan.');

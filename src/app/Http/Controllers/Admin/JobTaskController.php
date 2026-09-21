@@ -15,8 +15,17 @@ class JobTaskController extends Controller
     public function index(Request $request)
     {
         $jobs = JobTask::with(['client', 'employee.user', 'documentType'])
-            ->when($request->filled('stage'), fn($q) => $q->where('stage', $request->stage))
-            ->when($request->filled('client_id'), fn($q) => $q->where('client_id', $request->client_id))
+            ->when($request->filled('stage'), fn ($q) => $q->where('stage', $request->stage))
+            ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->client_id))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('title', 'like', "%{$search}%")
+                        ->orWhereHas('client', fn ($c) => $c->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('documentType', fn ($d) => $d->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('employee.user', fn ($e) => $e->where('name', 'like', "%{$search}%"));
+                });
+            })
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -49,7 +58,14 @@ class JobTaskController extends Controller
             'deadline' => ['nullable', 'date'],
         ]);
 
-        JobTask::create($data);
+        $job = JobTask::create($data);
+
+        $job->loadMissing('client', 'documentType', 'employee.user');
+        $job->employee?->user?->pushNotification(
+            title: 'Kamu ditugaskan pekerjaan baru',
+            message: "{$job->client->name} — {$job->documentType->name}",
+            url: route('karyawan.dashboard'),
+        );
 
         return redirect()->route('admin.jobs.index')->with('success', 'Pekerjaan berhasil ditambahkan.');
     }
@@ -84,7 +100,18 @@ class JobTaskController extends Controller
             'deadline' => ['nullable', 'date'],
         ]);
 
+        $previousEmployeeId = $job->employee_id;
+
         $job->update($data);
+
+        if ($job->employee_id !== $previousEmployeeId) {
+            $job->loadMissing('client', 'documentType', 'employee.user');
+            $job->employee?->user?->pushNotification(
+                title: 'Kamu ditugaskan pekerjaan baru',
+                message: "{$job->client->name} — {$job->documentType->name}",
+                url: route('karyawan.dashboard'),
+            );
+        }
 
         return redirect()->route('admin.jobs.index')->with('success', 'Pekerjaan berhasil diperbarui.');
     }

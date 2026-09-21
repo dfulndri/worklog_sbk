@@ -26,6 +26,39 @@ class User extends Authenticatable
         return $this->hasMany(DailyReport::class);
     }
 
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class)->latest();
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->notifications()->unread();
+    }
+
+    public function pushNotification(string $title, ?string $message = null, ?string $url = null): Notification
+    {
+        return $this->notifications()->create([
+            'title' => $title,
+            'message' => $message,
+            'url' => $url,
+        ]);
+    }
+
+    public function avatarUrl(): string
+    {
+        return $this->avatar_path
+            ? \Illuminate\Support\Facades\Storage::url($this->avatar_path)
+            : asset('assets/images/avatar/avatar.jpg');
+    }
+
+    public function coverUrl(): string
+    {
+        return $this->cover_path
+            ? \Illuminate\Support\Facades\Storage::url($this->cover_path)
+            : asset('assets/images/png/dasher-ui-bootstrap-5.jpg');
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

@@ -1,6 +1,7 @@
 @extends('layouts.karyawan')
 
 @section('title', 'Daily Report')
+@section('search-placeholder', 'Cari daily report...')
 
 @section('page-content')
     <div class="page-heading">

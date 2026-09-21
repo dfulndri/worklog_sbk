@@ -8,9 +8,18 @@ use Illuminate\Http\Request;
 
 class ExpertController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $experts = Expert::latest()->paginate(10);
+        $experts = Expert::when($request->filled('search'), function ($q) use ($request) {
+            $search = $request->search;
+            $q->where(function ($sub) use ($search) {
+                $sub->where('name', 'like', "%{$search}%")
+                    ->orWhere('field', 'like', "%{$search}%");
+            });
+        })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.experts.index', compact('experts'));
     }

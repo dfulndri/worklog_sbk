@@ -8,9 +8,18 @@ use Illuminate\Http\Request;
 
 class DocumentTypeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $documentTypes = DocumentType::latest()->paginate(10);
+        $documentTypes = DocumentType::when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%")
+                        ->orWhere('category', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.document-types.index', compact('documentTypes'));
     }

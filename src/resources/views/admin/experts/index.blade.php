@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('title', 'Tenaga Ahli')
+@section('search-placeholder', 'Cari nama tenaga ahli...')
 
 @section('page-content')
     <div class="page-heading">
