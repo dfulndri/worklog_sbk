@@ -17,6 +17,17 @@
     @yield('content')
 
     <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
+    @auth
+        <script>
+            // Override data demo bawaan template (lihat main.js: initUserProfile)
+            // supaya nama & foto yang tampil selalu data user yang sedang login.
+            window.adminHMDUser = {
+                name: @json(auth()->user()->name),
+                workspace: @json(auth()->user()->isAdmin() ? 'Administrator' : auth()->user()->employee->position ?? 'Karyawan'),
+                avatar: @json(auth()->user()->avatarUrl()),
+            };
+        </script>
+    @endauth
     <script src="{{ asset('assets/js/main.js') }}"></script>
     @stack('scripts')
 </body>

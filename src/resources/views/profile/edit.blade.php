@@ -59,9 +59,6 @@
                     </div>
                     <div class="info-list mt-4 text-start">
                         <div><span>Email</span><strong>{{ $user->email }}</strong></div>
-                        @if (!$user->isAdmin() && $user->employee)
-                            <div><span>No. HP</span><strong>{{ $user->employee->phone ?? '-' }}</strong></div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -100,6 +97,16 @@
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>
+                    @if (!$user->isAdmin() && $user->employee)
+                        <div class="col-md-6">
+                            <label class="form-label" for="phone">No. HP</label>
+                            <input class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone"
+                                type="text" value="{{ old('phone', $user->employee->phone) }}">
+                            @error('phone')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    @endif
                 </div>
 
                 <div class="d-flex justify-content-end mt-4">

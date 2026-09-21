@@ -25,9 +25,17 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'phone' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $user->update($data);
+        $user->update([
+            'name' => $data['name'],
+            'email' => $data['email'],
+        ]);
+
+        if (! $user->isAdmin() && $user->employee) {
+            $user->employee->update(['phone' => $data['phone'] ?? null]);
+        }
 
         return back()->with('success', 'Profil berhasil diperbarui.');
     }
