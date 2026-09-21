@@ -7,9 +7,12 @@
         <aside class="admin-sidebar" id="adminSidebar" aria-label="Main navigation">
             <div class="sidebar-header">
                 <a class="brand-mark" href="{{ route('karyawan.dashboard') }}" aria-label="SBK Daily Report">
-                    <span class="brand-icon"><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i></span>
+                    <span class="brand-icon" style="background: transparent; box-shadow: none;">
+                        <img src="{{ asset('assets/images/logo/Logo_Sabhika.png') }}" alt="SBK Logo"
+                            style="width: 36px; height: 36px; object-fit: contain;">
+                    </span>
                     <span class="brand-copy">
-                        <span class="brand-title">SBK Report</span>
+                        <span class="brand-title">PT Sastra Worklog</span>
                         <span class="brand-subtitle">Employee Panel</span>
                     </span>
                 </a>
