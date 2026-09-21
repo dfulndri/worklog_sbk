@@ -12,12 +12,15 @@
     <main class="auth-page">
         <section class="auth-card">
             <a class="auth-brand" href="{{ url('/') }}">
-                <span class="brand-icon"><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i></span>
-                <span><strong>SBK Daily Report</strong><small>Sign in to your workspace.</small></span>
+                <span class="brand-icon" style="background: transparent; box-shadow: none;">
+                    <img src="{{ asset('assets/images/logo/Logo_Sabhika.png') }}" alt="SBK Logo"
+                        style="width: 36px; height: 36px; object-fit: contain;">
+                </span>
+                <span><strong>PT Sastra Worklog</strong><small>Sign in to your workspace.</small></span>
             </a>
 
             <div class="auth-visual">
-                <img src="{{ asset('assets/images/png/dasher-ui-bootstrap-5.jpg') }}" alt="SBK Daily Report">
+                <img src="{{ asset('assets/images/logo/photo.jpg') }}" alt="SBK Daily Report">
             </div>
 
             <form class="needs-validation" novalidate method="POST" action="{{ route('login') }}">
