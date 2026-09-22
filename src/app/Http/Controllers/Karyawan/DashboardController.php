@@ -3,42 +3,43 @@
 namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
-use App\Models\JobTask;
+use App\Models\DailyReport;
+use App\Support\ActivityChart;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $employee = Auth::user()->employee;
+        $userId = Auth::id();
 
-        $jobs = $employee
-            ? JobTask::with(['client', 'documentType'])
-            ->where('employee_id', $employee->id)
-            ->latest()
-            ->get()
-            : collect();
+        $year = (int) $request->input('year', now()->year);
+        $month = $request->filled('month') ? (int) $request->input('month') : null;
+
+        $periodReports = DailyReport::with('jobTask')
+            ->where('user_id', $userId)
+            ->whereYear('report_date', $year)
+            ->when($month, fn($q) => $q->whereMonth('report_date', $month))
+            ->get();
 
         $stats = [
-            'total' => $jobs->count(),
-            'final' => $jobs->where('stage', 'final')->count(),
-            'avg_progress' => $jobs->count() > 0 ? (int) round($jobs->avg('progress')) : 0,
-            'near_deadline' => $jobs->filter(function ($job) {
-                return $job->deadline
-                    && $job->stage !== 'final'
-                    && $job->deadline->isFuture()
-                    && $job->deadline->diffInDays(now()) <= 7;
-            })->count(),
+            'total_reports' => $periodReports->count(),
+            'avg_progress' => $periodReports->count() ? (int) round($periodReports->avg('progress')) : 0,
+            'jobs_touched' => $periodReports->pluck('job_task_id')->unique()->count(),
+            'with_obstacle' => $periodReports->filter(fn($r) => filled($r->obstacle))->count(),
         ];
 
-        // Progress per pekerjaan untuk bar chart (maksimal 6 item terbaru).
-        $progressChart = $jobs->take(6)->map(function ($job) {
-            return [
-                'label' => \Illuminate\Support\Str::limit($job->client->name ?? '-', 12),
-                'value' => $job->progress,
-            ];
-        });
+        $chart = ActivityChart::build($periodReports, $month);
 
-        return view('karyawan.dashboard', compact('jobs', 'stats', 'progressChart'));
+        $availableYears = DailyReport::where('user_id', $userId)
+            ->selectRaw('DISTINCT YEAR(report_date) as year')
+            ->pluck('year')
+            ->push(now()->year)
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        return view('karyawan.dashboard', compact('stats', 'chart', 'availableYears', 'year', 'month'));
     }
 }

@@ -91,4 +91,98 @@ class DailyReportController extends Controller
 
         return redirect()->route('karyawan.daily-reports.index')->with('success', 'Daily report berhasil disimpan.');
     }
+
+    public function edit(DailyReport $daily_report)
+    {
+        abort_unless($daily_report->user_id === Auth::id(), 403);
+
+        $employee = Auth::user()->employee;
+
+        $jobs = $employee
+            ? JobTask::with(['client', 'documentType'])
+            ->where('employee_id', $employee->id)
+            ->orderBy('deadline')
+            ->get()
+            : collect();
+
+        return view('karyawan.daily-reports.edit', ['report' => $daily_report, 'jobs' => $jobs]);
+    }
+
+    public function update(Request $request, DailyReport $daily_report)
+    {
+        abort_unless($daily_report->user_id === Auth::id(), 403);
+
+        $employee = Auth::user()->employee;
+
+        $data = $request->validate([
+            'job_task_id' => ['required', 'exists:job_tasks,id'],
+            'report_date' => ['required', 'date'],
+            'progress' => ['required', 'integer', 'min:0', 'max:100'],
+            'description' => ['required', 'string'],
+            'obstacle' => ['nullable', 'string'],
+            'next_plan' => ['nullable', 'string'],
+        ]);
+
+        // Pastikan pekerjaan yang dipilih memang milik karyawan yang sedang login.
+        $job = JobTask::where('id', $data['job_task_id'])
+            ->where('employee_id', $employee?->id)
+            ->firstOrFail();
+
+        DB::transaction(function () use ($data, $job, $daily_report) {
+            $previousJobId = $daily_report->job_task_id;
+
+            $daily_report->update([
+                'job_task_id' => $job->id,
+                'report_date' => $data['report_date'],
+                'progress' => $data['progress'],
+                'description' => $data['description'],
+                'obstacle' => $data['obstacle'] ?? null,
+                'next_plan' => $data['next_plan'] ?? null,
+            ]);
+
+            // Progress pekerjaan selalu mengikuti laporan terbaru yang tersisa.
+            $this->recalculateJobProgress($job);
+
+            if ($previousJobId !== $job->id) {
+                $previousJob = JobTask::find($previousJobId);
+                if ($previousJob) {
+                    $this->recalculateJobProgress($previousJob);
+                }
+            }
+        });
+
+        return redirect()->route('karyawan.daily-reports.index')->with('success', 'Daily report berhasil diperbarui.');
+    }
+
+    public function destroy(DailyReport $daily_report)
+    {
+        abort_unless($daily_report->user_id === Auth::id(), 403);
+
+        DB::transaction(function () use ($daily_report) {
+            $job = $daily_report->jobTask;
+            $daily_report->delete();
+
+            if ($job) {
+                $this->recalculateJobProgress($job);
+            }
+        });
+
+        return back()->with('success', 'Daily report berhasil dihapus.');
+    }
+
+    /**
+     * Progress pekerjaan selalu mengikuti laporan terbaru (by tanggal) yang masih tersisa.
+     * Kalau tidak ada laporan tersisa, progress pekerjaan dibiarkan seperti sebelumnya.
+     */
+    private function recalculateJobProgress(JobTask $job): void
+    {
+        $latest = DailyReport::where('job_task_id', $job->id)
+            ->latest('report_date')
+            ->latest('id')
+            ->first();
+
+        if ($latest) {
+            $job->update(['progress' => $latest->progress]);
+        }
+    }
 }

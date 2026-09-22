@@ -67,6 +67,9 @@ Route::middleware(['auth', 'role:karyawan'])
         Route::get('/dashboard', [Karyawan\DashboardController::class, 'index'])
             ->name('dashboard');
 
+        Route::get('/jobs', [Karyawan\JobTaskController::class, 'index'])
+            ->name('jobs.index');
+
         Route::resource('daily-reports', Karyawan\DailyReportController::class)
-            ->only(['index', 'create', 'store']);
+            ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     });

@@ -12,7 +12,8 @@
                 <p class="text-muted mb-0">Ringkasan data dan pekerjaan yang sedang berjalan.</p>
             </div>
         </div>
-        <div class="heading-actions">
+        <div class="heading-actions d-flex flex-wrap gap-2 align-items-center">
+            @include('partials.period-filter')
             <a href="{{ route('admin.jobs.create') }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus-lg" aria-hidden="true"></i> Tambah Pekerjaan
             </a>
@@ -65,7 +66,62 @@
         </div>
     </section>
 
-    <section class="row g-3 mt-1">
+    <section class="mt-3">
+        <h2 class="h6 text-muted text-uppercase mb-2" style="letter-spacing: 0.04em;">
+            Aktivitas Periode Terpilih
+        </h2>
+        <div class="row g-3">
+            <div class="col-12 col-sm-4">
+                <article class="metric-card metric-primary">
+                    <div class="metric-top">
+                        <span class="metric-label">Laporan Masuk</span>
+                        <span class="metric-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></span>
+                    </div>
+                    <div class="metric-value">{{ $periodStats['reports_in'] }}</div>
+                    <div class="metric-meta"><span>daily report periode ini</span></div>
+                </article>
+            </div>
+            <div class="col-12 col-sm-4">
+                <article class="metric-card metric-success">
+                    <div class="metric-top">
+                        <span class="metric-label">Pekerjaan Baru</span>
+                        <span class="metric-icon"><i class="bi bi-kanban" aria-hidden="true"></i></span>
+                    </div>
+                    <div class="metric-value">{{ $periodStats['jobs_created'] }}</div>
+                    <div class="metric-meta"><span>dibuat pada periode ini</span></div>
+                </article>
+            </div>
+            <div class="col-12 col-sm-4">
+                <article class="metric-card metric-warning">
+                    <div class="metric-top">
+                        <span class="metric-label">Rata-rata Progress</span>
+                        <span class="metric-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+                    </div>
+                    <div class="metric-value">{{ $periodStats['avg_progress'] }}%</div>
+                    <div class="metric-meta"><span>dari laporan periode ini</span></div>
+                </article>
+            </div>
+        </div>
+
+        <div class="panel mt-3">
+            <h2 class="h5 mb-3 section-title"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Tren
+                    Aktivitas Laporan</span></h2>
+            @if ($chart->sum('value') > 0)
+                <div class="chart-bars">
+                    @foreach ($chart as $bar)
+                        <div class="chart-column" style="--bar-size: {{ $bar['percent'] }}%;">
+                            <span title="{{ $bar['label'] }}: {{ $bar['value'] }} laporan"></span>
+                            <small>{{ $bar['label'] }}</small>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-muted text-center py-4 mb-0">Belum ada laporan pada periode ini.</p>
+            @endif
+        </div>
+    </section>
+
+    <section class="row g-3 mt-3">
         <div class="col-12 col-xl-4">
             <div class="panel h-100">
                 <h2 class="h5 mb-3 section-title"><i class="bi bi-pie-chart" aria-hidden="true"></i><span>Pekerjaan per
@@ -122,8 +178,8 @@
         <div class="panel-header">
             <div>
                 <h2 class="h5 mb-1 section-title"><i class="bi bi-activity" aria-hidden="true"></i><span>Aktivitas Daily
-                        Report Terbaru</span></h2>
-                <p class="text-muted mb-0">5 laporan terakhir dari seluruh karyawan.</p>
+                        Report</span></h2>
+                <p class="text-muted mb-0">8 laporan terbaru pada periode terpilih.</p>
             </div>
             <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.reports.index') }}">Lihat Semua Laporan</a>
         </div>

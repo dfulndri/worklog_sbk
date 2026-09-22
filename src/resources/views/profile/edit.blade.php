@@ -22,18 +22,15 @@
                         <img src="{{ $user->coverUrl() }}" alt="Cover {{ $user->name }}">
                     </div>
 
-                    @if ($user->isAdmin())
-                        <form method="POST" action="{{ route('profile.cover') }}" enctype="multipart/form-data"
-                            id="coverForm">
-                            @csrf
-                            <input type="file" name="cover" id="coverInput" accept="image/*" class="d-none"
-                                onchange="document.getElementById('coverForm').submit()">
-                            <button type="button" class="cover-upload-btn"
-                                onclick="document.getElementById('coverInput').click()">
-                                <i class="bi bi-camera" aria-hidden="true"></i> Ganti Cover
-                            </button>
-                        </form>
-                    @endif
+                    <form method="POST" action="{{ route('profile.cover') }}" enctype="multipart/form-data" id="coverForm">
+                        @csrf
+                        <input type="file" name="cover" id="coverInput" accept="image/*" class="d-none"
+                            onchange="document.getElementById('coverForm').submit()">
+                        <button type="button" class="cover-upload-btn"
+                            onclick="document.getElementById('coverInput').click()">
+                            <i class="bi bi-camera" aria-hidden="true"></i> Ganti Cover
+                        </button>
+                    </form>
                 </div>
 
                 <div class="px-3 pb-4">

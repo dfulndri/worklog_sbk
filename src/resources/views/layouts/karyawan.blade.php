@@ -23,13 +23,18 @@
                     <a class="nav-link {{ request()->routeIs('karyawan.dashboard') ? 'active' : '' }}"
                         href="{{ route('karyawan.dashboard') }}">
                         <span class="nav-icon"><i class="bi bi-speedometer2" aria-hidden="true"></i></span>
-                        <span class="nav-text">Progress Saya</span>
+                        <span class="nav-text">Dashboard</span>
                     </a>
                 </div>
 
                 <hr class="sidebar-nav-divider">
                 <div class="sidebar-nav-group">
                     <span class="sidebar-nav-label">Aktivitas</span>
+                    <a class="nav-link {{ request()->routeIs('karyawan.jobs.*') ? 'active' : '' }}"
+                        href="{{ route('karyawan.jobs.index') }}">
+                        <span class="nav-icon"><i class="bi bi-kanban" aria-hidden="true"></i></span>
+                        <span class="nav-text">Pekerjaan Saya</span>
+                    </a>
                     <a class="nav-link {{ request()->routeIs('karyawan.daily-reports.*') ? 'active' : '' }}"
                         href="{{ route('karyawan.daily-reports.index') }}">
                         <span class="nav-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></span>

@@ -8,11 +8,14 @@ use App\Models\DailyReport;
 use App\Models\Employee;
 use App\Models\Expert;
 use App\Models\JobTask;
+use App\Support\ActivityChart;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        // Total master data — selalu global, tidak terikat periode.
         $stats = [
             'clients' => Client::count(),
             'experts' => Expert::count(),
@@ -24,11 +27,6 @@ class DashboardController extends Controller
             ->groupBy('stage')
             ->pluck('total', 'stage');
 
-        $latestJobs = JobTask::with(['client', 'employee.user'])
-            ->latest()
-            ->take(5)
-            ->get();
-
         $upcomingDeadlines = JobTask::with(['client', 'employee.user'])
             ->whereNotNull('deadline')
             ->where('deadline', '>=', now()->toDateString())
@@ -38,17 +36,52 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $recentReports = DailyReport::with(['user', 'jobTask.client'])
-            ->latest('report_date')
+        $latestJobs = JobTask::with(['client', 'employee.user'])
+            ->latest()
             ->take(5)
             ->get();
+
+        // Aktivitas periode terpilih (tahun/bulan).
+        $year = (int) $request->input('year', now()->year);
+        $month = $request->filled('month') ? (int) $request->input('month') : null;
+
+        $periodReports = DailyReport::with(['user', 'jobTask.client'])
+            ->whereYear('report_date', $year)
+            ->when($month, fn($q) => $q->whereMonth('report_date', $month))
+            ->get();
+
+        $periodJobsCreated = JobTask::whereYear('created_at', $year)
+            ->when($month, fn($q) => $q->whereMonth('created_at', $month))
+            ->count();
+
+        $periodStats = [
+            'reports_in' => $periodReports->count(),
+            'jobs_created' => $periodJobsCreated,
+            'avg_progress' => $periodReports->count() ? (int) round($periodReports->avg('progress')) : 0,
+        ];
+
+        $chart = ActivityChart::build($periodReports, $month);
+
+        $recentReports = $periodReports->sortByDesc('report_date')->take(8)->values();
+
+        $availableYears = DailyReport::selectRaw('DISTINCT YEAR(report_date) as year')
+            ->pluck('year')
+            ->push(now()->year)
+            ->unique()
+            ->sortDesc()
+            ->values();
 
         return view('admin.dashboard', compact(
             'stats',
             'stageBreakdown',
-            'latestJobs',
             'upcomingDeadlines',
-            'recentReports'
+            'latestJobs',
+            'periodStats',
+            'chart',
+            'recentReports',
+            'availableYears',
+            'year',
+            'month'
         ));
     }
 }

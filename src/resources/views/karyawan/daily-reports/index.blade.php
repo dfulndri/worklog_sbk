@@ -32,21 +32,38 @@
         @forelse ($reports as $report)
             <div class="activity-item">
                 <span class="activity-dot bg-primary"></span>
-                <div>
-                    <p class="mb-1 fw-semibold">
-                        {{ $report->report_date->format('d M Y') }} —
-                        {{ $report->jobTask->client->name ?? '-' }} ({{ $report->jobTask->documentType->name ?? '-' }})
-                        <span class="badge text-bg-secondary">{{ $report->progress }}%</span>
-                    </p>
-                    <p class="text-muted small mb-1">{{ $report->description }}</p>
-                    @if ($report->obstacle)
-                        <p class="text-danger small mb-1"><i class="bi bi-exclamation-triangle"></i> Kendala:
-                            {{ $report->obstacle }}</p>
-                    @endif
-                    @if ($report->next_plan)
-                        <p class="text-muted small mb-0"><i class="bi bi-arrow-right-circle"></i> Rencana berikutnya:
-                            {{ $report->next_plan }}</p>
-                    @endif
+                <div class="d-flex justify-content-between w-100 gap-3">
+                    <div>
+                        <p class="mb-1 fw-semibold">
+                            {{ $report->report_date->format('d M Y') }} —
+                            {{ $report->jobTask->client->name ?? '-' }}
+                            ({{ $report->jobTask->documentType->name ?? '-' }})
+                            <span class="badge text-bg-secondary">{{ $report->progress }}%</span>
+                        </p>
+                        <p class="text-muted small mb-1">{{ $report->description }}</p>
+                        @if ($report->obstacle)
+                            <p class="text-danger small mb-1"><i class="bi bi-exclamation-triangle"></i> Kendala:
+                                {{ $report->obstacle }}</p>
+                        @endif
+                        @if ($report->next_plan)
+                            <p class="text-muted small mb-0"><i class="bi bi-arrow-right-circle"></i> Rencana
+                                berikutnya:
+                                {{ $report->next_plan }}</p>
+                        @endif
+                    </div>
+                    <div class="d-flex align-items-start gap-1 flex-shrink-0">
+                        <a class="btn btn-light btn-sm" href="{{ route('karyawan.daily-reports.edit', $report) }}">
+                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                        </a>
+                        <form action="{{ route('karyawan.daily-reports.destroy', $report) }}" method="POST"
+                            onsubmit="return confirm('Hapus laporan tanggal {{ $report->report_date->format('d M Y') }}?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-light btn-sm text-danger">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         @empty

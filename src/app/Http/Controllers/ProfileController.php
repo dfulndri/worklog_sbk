@@ -60,8 +60,6 @@ class ProfileController extends Controller
 
     public function updateCover(Request $request)
     {
-        abort_unless(Auth::user()->isAdmin(), 403);
-
         $request->validate([
             'cover' => ['required', 'image', 'max:4096'],
         ]);
