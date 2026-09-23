@@ -41,4 +41,51 @@ class ActivityChart
             return $row;
         });
     }
+
+    /**
+     * Label sumbu-X: per minggu dalam bulan (kalau $month diisi, jumlah minggu
+     * menyesuaikan jumlah hari di bulan itu) atau per bulan Jan-Des (kalau tidak).
+     * Dikembalikan sebagai array PHP biasa (bukan Collection) supaya aman dipakai
+     * langsung di @json() Blade tanpa risiko salah pecah koma.
+     */
+    public static function bucketLabels(int $year, ?int $month): array
+    {
+        if ($month) {
+            $daysInMonth = \Carbon\Carbon::createFromDate($year, $month, 1)->daysInMonth;
+            $weeks = (int) ceil($daysInMonth / 7);
+
+            return collect(range(1, $weeks))->map(fn($w) => "Minggu {$w}")->values()->all();
+        }
+
+        return self::MONTH_LABELS;
+    }
+
+    /**
+     * Nomor bucket (1-based) tempat sebuah tanggal jatuh, konsisten dengan bucketLabels().
+     */
+    public static function bucketOf(\Carbon\Carbon $date, ?int $month): int
+    {
+        return $month ? (int) ceil($date->day / 7) : $date->month;
+    }
+
+    /**
+     * Palet warna untuk membedakan tiap seri (mis. tiap karyawan) di grafik.
+     */
+    public static function palette(): array
+    {
+        return [
+            '#ef4444',
+            '#f97316',
+            '#f59e0b',
+            '#84cc16',
+            '#10b981',
+            '#14b8a6',
+            '#0ea5e9',
+            '#6366f1',
+            '#8b5cf6',
+            '#ec4899',
+            '#f43f5e',
+            '#64748b',
+        ];
+    }
 }

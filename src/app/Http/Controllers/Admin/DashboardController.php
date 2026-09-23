@@ -60,7 +60,37 @@ class DashboardController extends Controller
             'avg_progress' => $periodReports->count() ? (int) round($periodReports->avg('progress')) : 0,
         ];
 
-        $chart = ActivityChart::build($periodReports, $month);
+        // Grafik aktivitas per karyawan: satu seri (warna) per karyawan.
+        // Dibangun pakai foreach + array biasa (bukan Collection chain panjang)
+        // supaya expresinya aman dipakai langsung di @json() Blade.
+        $bucketLabels = ActivityChart::bucketLabels($year, $month);
+        $palette = ActivityChart::palette();
+        $employees = Employee::with('user')->orderBy('id')->get();
+
+        $employeeDatasets = [];
+        foreach ($employees as $index => $employee) {
+            $userReports = $periodReports->where('user_id', $employee->user_id);
+
+            $data = [];
+            foreach ($bucketLabels as $i => $label) {
+                $bucket = $i + 1;
+                $data[] = $userReports->filter(
+                    fn($r) => ActivityChart::bucketOf($r->report_date, $month) === $bucket
+                )->count();
+            }
+
+            if (array_sum($data) === 0) {
+                continue;
+            }
+
+            $employeeDatasets[] = [
+                'label' => $employee->user->name ?? 'Karyawan',
+                'data' => $data,
+                'backgroundColor' => $palette[$index % count($palette)],
+                'borderRadius' => 6,
+                'maxBarThickness' => 22,
+            ];
+        }
 
         $recentReports = $periodReports->sortByDesc('report_date')->take(8)->values();
 
@@ -77,7 +107,8 @@ class DashboardController extends Controller
             'upcomingDeadlines',
             'latestJobs',
             'periodStats',
-            'chart',
+            'bucketLabels',
+            'employeeDatasets',
             'recentReports',
             'availableYears',
             'year',

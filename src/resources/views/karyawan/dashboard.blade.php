@@ -80,14 +80,9 @@
             <div class="panel h-100">
                 <h2 class="h5 mb-3 section-title"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Tren
                         Aktivitas Laporan</span></h2>
-                @if ($chart->sum('value') > 0)
-                    <div class="chart-bars">
-                        @foreach ($chart as $bar)
-                            <div class="chart-column" style="--bar-size: {{ $bar['percent'] }}%;">
-                                <span title="{{ $bar['label'] }}: {{ $bar['value'] }} laporan"></span>
-                                <small>{{ $bar['label'] }}</small>
-                            </div>
-                        @endforeach
+                @if ($chartHasData)
+                    <div style="height: 280px;">
+                        <canvas id="activityChart"></canvas>
                     </div>
                 @else
                     <p class="text-muted text-center py-4 mb-0">Belum ada laporan pada periode ini.</p>
@@ -96,3 +91,55 @@
         </div>
     </section>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('assets/vendors/chartjs/chart.umd.min.js') }}"></script>
+    <script>
+        const activityChartCanvas = document.getElementById('activityChart');
+        if (activityChartCanvas) {
+            const chartLabels = @json($chartLabels);
+            const chartValues = @json($chartValues);
+
+            new Chart(activityChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Jumlah Laporan',
+                        data: chartValues,
+                        backgroundColor: '#2563eb',
+                        borderRadius: 6,
+                        maxBarThickness: 36,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.parsed.y} laporan`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+@endpush

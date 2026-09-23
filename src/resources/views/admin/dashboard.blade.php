@@ -104,16 +104,11 @@
         </div>
 
         <div class="panel mt-3">
-            <h2 class="h5 mb-3 section-title"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Tren
-                    Aktivitas Laporan</span></h2>
-            @if ($chart->sum('value') > 0)
-                <div class="chart-bars">
-                    @foreach ($chart as $bar)
-                        <div class="chart-column" style="--bar-size: {{ $bar['percent'] }}%;">
-                            <span title="{{ $bar['label'] }}: {{ $bar['value'] }} laporan"></span>
-                            <small>{{ $bar['label'] }}</small>
-                        </div>
-                    @endforeach
+            <h2 class="h5 mb-3 section-title"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Aktivitas
+                    Laporan per Karyawan</span></h2>
+            @if (count($employeeDatasets) > 0)
+                <div style="height: 320px;">
+                    <canvas id="employeeActivityChart"></canvas>
                 </div>
             @else
                 <p class="text-muted text-center py-4 mb-0">Belum ada laporan pada periode ini.</p>
@@ -237,3 +232,59 @@
         </div>
     </section>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('assets/vendors/chartjs/chart.umd.min.js') }}"></script>
+    <script>
+        const employeeChartCanvas = document.getElementById('employeeActivityChart');
+        if (employeeChartCanvas) {
+            const employeeDatasets = @json($employeeDatasets);
+            const bucketLabels = @json($bucketLabels);
+
+            new Chart(employeeChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: bucketLabels,
+                    datasets: employeeDatasets,
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                boxHeight: 8
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} laporan`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+@endpush

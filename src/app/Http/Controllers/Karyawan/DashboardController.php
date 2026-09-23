@@ -31,6 +31,9 @@ class DashboardController extends Controller
         ];
 
         $chart = ActivityChart::build($periodReports, $month);
+        $chartLabels = $chart->pluck('label')->values()->all();
+        $chartValues = $chart->pluck('value')->values()->all();
+        $chartHasData = array_sum($chartValues) > 0;
 
         $availableYears = DailyReport::where('user_id', $userId)
             ->selectRaw('DISTINCT YEAR(report_date) as year')
@@ -40,6 +43,14 @@ class DashboardController extends Controller
             ->sortDesc()
             ->values();
 
-        return view('karyawan.dashboard', compact('stats', 'chart', 'availableYears', 'year', 'month'));
+        return view('karyawan.dashboard', compact(
+            'stats',
+            'chartLabels',
+            'chartValues',
+            'chartHasData',
+            'availableYears',
+            'year',
+            'month'
+        ));
     }
 }
