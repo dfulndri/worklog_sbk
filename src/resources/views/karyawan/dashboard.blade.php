@@ -107,7 +107,7 @@
                     datasets: [{
                         label: 'Jumlah Laporan',
                         data: chartValues,
-                        backgroundColor: '#2563eb',
+                        backgroundColor: '#dc2626',
                         borderRadius: 6,
                         maxBarThickness: 36,
                     }]
