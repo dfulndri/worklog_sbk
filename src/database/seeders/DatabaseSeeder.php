@@ -37,6 +37,9 @@ class DatabaseSeeder extends Seeder
             ClientSeeder::class,
             ExpertSeeder::class,
             DocumentTypeSeeder::class,
+            DocumentCategorySeeder::class,
+            AuthoritySeeder::class,
+            JobStageSeeder::class,
         ]);
     }
 }

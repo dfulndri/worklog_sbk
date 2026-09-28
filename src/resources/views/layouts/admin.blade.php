@@ -45,10 +45,20 @@
                         <span class="nav-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
                         <span class="nav-text">Karyawan</span>
                     </a>
-                    <a class="nav-link {{ request()->routeIs('admin.document-types.*') ? 'active' : '' }}"
-                        href="{{ route('admin.document-types.index') }}">
-                        <span class="nav-icon"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span>
-                        <span class="nav-text">Jenis Dokumen</span>
+                    <a class="nav-link {{ request()->routeIs('admin.document-categories.*') ? 'active' : '' }}"
+                        href="{{ route('admin.document-categories.index') }}">
+                        <span class="nav-icon"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
+                        <span class="nav-text">Kategori Dokumen</span>
+                    </a>
+                    <a class="nav-link {{ request()->routeIs('admin.authorities.*') ? 'active' : '' }}"
+                        href="{{ route('admin.authorities.index') }}">
+                        <span class="nav-icon"><i class="bi bi-bank" aria-hidden="true"></i></span>
+                        <span class="nav-text">Status Kewenangan</span>
+                    </a>
+                    <a class="nav-link {{ request()->routeIs('admin.job-stages.*') ? 'active' : '' }}"
+                        href="{{ route('admin.job-stages.index') }}">
+                        <span class="nav-icon"><i class="bi bi-list-ol" aria-hidden="true"></i></span>
+                        <span class="nav-text">Tahapan Proses</span>
                     </a>
                 </div>
 
@@ -190,6 +200,9 @@
                 <div class="container-fluid px-3 px-lg-4 py-4">
                     @if (session('success'))
                         <div class="alert alert-success">{{ session('success') }}</div>
+                    @endif
+                    @if (session('error'))
+                        <div class="alert alert-danger">{{ session('error') }}</div>
                     @endif
 
                     @yield('page-content')

@@ -48,6 +48,12 @@ Route::middleware(['auth', 'role:admin'])
 
         Route::resource('document-types', Admin\DocumentTypeController::class);
 
+        Route::resource('document-categories', Admin\DocumentCategoryController::class)->except('show');
+
+        Route::resource('authorities', Admin\AuthorityController::class)->except('show');
+
+        Route::resource('job-stages', Admin\JobStageController::class)->except('show');
+
         Route::resource('jobs', Admin\JobTaskController::class);
 
         Route::get('/reports', [Admin\ReportController::class, 'index'])
