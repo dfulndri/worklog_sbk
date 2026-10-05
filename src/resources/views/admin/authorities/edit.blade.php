@@ -15,6 +15,8 @@
     </div>
 
     <section class="panel mt-3">
+        @include('admin.document-categories._tabs')
+
         <form method="POST" action="{{ route('admin.authorities.update', $authority) }}">
             @csrf
             @method('PUT')

@@ -9,7 +9,7 @@
             <span class="page-icon"><i class="bi bi-bank" aria-hidden="true"></i></span>
             <div>
                 <p class="eyebrow mb-1">Master Data</p>
-                <h1 class="h3 mb-1">Status Kewenangan</h1>
+                <h1 class="h3 mb-1">Kategori Dokumen</h1>
                 <p class="text-muted mb-0">Tingkat pemerintahan yang berwenang menerbitkan dokumen lingkungan.</p>
             </div>
         </div>
@@ -21,6 +21,8 @@
     </div>
 
     <section class="panel mt-3">
+        @include('admin.document-categories._tabs')
+
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead>

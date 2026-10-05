@@ -5,76 +5,116 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DocumentCategory;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class DocumentCategoryController extends Controller
 {
+    private const TABS = ['kategori', 'sub_kategori', 'dokumen'];
+
     public function index(Request $request)
     {
-        $all = DocumentCategory::orderBy('sort_order')->orderBy('id')->get();
-        $byParent = $all->groupBy(fn($c) => $c->parent_id ?? 0);
+        $tab = in_array($request->input('tab'), self::TABS, true) ? $request->input('tab') : 'kategori';
 
-        $rows = [];
-        $walk = function (int $parentId, int $depth, array $path) use (&$walk, &$rows, $byParent) {
-            foreach ($byParent->get($parentId, collect()) as $category) {
-                $childPath = $depth === 0 ? [] : [...$path, $category->name];
-                $rows[] = [
-                    'category' => $category,
-                    'depth' => $depth,
-                    'path' => $depth === 0 ? $category->name : implode(' › ', $childPath),
-                    'has_children' => $byParent->has($category->id),
-                ];
-                $walk($category->id, $depth + 1, $childPath);
-            }
-        };
-        $walk(0, 0, []);
+        $kategoriList = DocumentCategory::where('level', 'kategori')
+            ->orderBy('sort_order')->orderBy('id')->get();
 
+        $subKategoriList = DocumentCategory::where('level', 'sub_kategori')
+            ->orderBy('sort_order')->orderBy('id')->get();
+
+        $kategoriId = $request->input('kategori_id');
+        $subKategoriId = $request->input('sub_kategori_id');
         $search = trim((string) $request->input('search'));
-        if ($search !== '') {
-            $rows = array_values(array_filter(
-                $rows,
-                fn($row) => mb_stripos($row['category']->name, $search) !== false
-            ));
+
+        $query = DocumentCategory::with(['parent.parent'])->where('level', $tab);
+
+        if ($tab === 'sub_kategori' && $kategoriId) {
+            $query->where('parent_id', $kategoriId);
         }
 
-        return view('admin.document-categories.index', compact('rows', 'search'));
+        if ($tab === 'dokumen') {
+            if ($subKategoriId) {
+                $query->where('parent_id', $subKategoriId);
+            } elseif ($kategoriId) {
+                $query->whereHas('parent', fn($q) => $q->where('parent_id', $kategoriId));
+            }
+        }
+
+        if ($search !== '') {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $rows = $query->orderBy('sort_order')->orderBy('id')->get();
+
+        // Sub kategori sudah difilter oleh kategori terpilih, dikirim sebagai array polos
+        // (aman dipakai @json di Blade, tanpa koma bersarang dalam satu ekspresi).
+        $subKategoriFiltered = $kategoriId
+            ? $subKategoriList->where('parent_id', $kategoriId)->values()
+            : $subKategoriList;
+
+        $subKategoriOptionsJs = $subKategoriList->map(fn($s) => [
+            'id' => $s->id,
+            'name' => $s->name,
+            'parent_id' => $s->parent_id,
+        ])->values()->all();
+
+        return view('admin.document-categories.index', compact(
+            'tab',
+            'rows',
+            'kategoriList',
+            'subKategoriList',
+            'subKategoriFiltered',
+            'subKategoriOptionsJs',
+            'kategoriId',
+            'subKategoriId',
+            'search'
+        ));
     }
 
     public function create(Request $request)
     {
-        $parents = $this->parentOptions();
-        $selectedParent = $request->input('parent_id');
+        $level = in_array($request->input('level'), self::TABS, true) ? $request->input('level') : 'kategori';
 
-        return view('admin.document-categories.create', compact('parents', 'selectedParent'));
+        $kategoriList = DocumentCategory::where('level', 'kategori')->orderBy('sort_order')->orderBy('id')->get();
+        $subKategoriOptionsJs = DocumentCategory::where('level', 'sub_kategori')
+            ->orderBy('sort_order')->orderBy('id')->get()
+            ->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'parent_id' => $s->parent_id])
+            ->values()->all();
+
+        return view('admin.document-categories.create', compact('level', 'kategoriList', 'subKategoriOptionsJs'));
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'parent_id' => ['nullable', 'exists:document_categories,id'],
+        $level = in_array($request->input('level'), self::TABS, true) ? $request->input('level') : 'kategori';
+
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'requires_authority' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
-        ]);
-
-        $parent = $data['parent_id'] ? DocumentCategory::find($data['parent_id']) : null;
-        $level = $parent ? $parent->childLevel() : 'kegiatan';
-
-        if (! $level) {
-            throw ValidationException::withMessages([
-                'parent_id' => 'Level Jenis Dokumen adalah level terdalam dan tidak boleh punya turunan.',
-            ]);
+        ];
+        if ($level === 'sub_kategori') {
+            $rules['kategori_id'] = ['required', 'exists:document_categories,id'];
         }
+        if ($level === 'dokumen') {
+            $rules['sub_kategori_id'] = ['required', 'exists:document_categories,id'];
+        }
+        $data = $request->validate($rules);
+
+        $parentId = match ($level) {
+            'kategori' => $this->rootId(),
+            'sub_kategori' => $data['kategori_id'],
+            'dokumen' => $data['sub_kategori_id'],
+        };
 
         DocumentCategory::create([
-            'parent_id' => $parent?->id,
+            'parent_id' => $parentId,
             'name' => $data['name'],
             'level' => $level,
             'requires_authority' => $request->boolean('requires_authority'),
             'sort_order' => $data['sort_order'] ?? 0,
         ]);
 
-        return redirect()->route('admin.document-categories.index')->with('success', 'Kategori dokumen berhasil ditambahkan.');
+        return redirect()->route('admin.document-categories.index', ['tab' => $level])
+            ->with('success', 'Data berhasil ditambahkan.');
     }
 
     public function edit(DocumentCategory $document_category)
@@ -96,7 +136,8 @@ class DocumentCategoryController extends Controller
             'sort_order' => $data['sort_order'] ?? 0,
         ]);
 
-        return redirect()->route('admin.document-categories.index')->with('success', 'Kategori dokumen berhasil diperbarui.');
+        return redirect()->route('admin.document-categories.index', ['tab' => $document_category->level])
+            ->with('success', 'Data berhasil diperbarui.');
     }
 
     public function destroy(DocumentCategory $document_category)
@@ -105,33 +146,15 @@ class DocumentCategoryController extends Controller
             return back()->with('error', 'Tidak bisa dihapus: masih punya turunan. Hapus turunannya dulu.');
         }
 
+        $level = $document_category->level;
         $document_category->delete();
 
-        return back()->with('success', 'Kategori dokumen berhasil dihapus.');
+        return redirect()->route('admin.document-categories.index', ['tab' => $level])
+            ->with('success', 'Data berhasil dihapus.');
     }
 
-    /** Node yang masih boleh punya anak, lengkap dengan label jalur. */
-    private function parentOptions(): array
+    private function rootId(): int
     {
-        $all = DocumentCategory::orderBy('sort_order')->orderBy('id')->get();
-        $byParent = $all->groupBy(fn($c) => $c->parent_id ?? 0);
-
-        $options = [];
-        $walk = function (int $parentId, array $path) use (&$walk, &$options, $byParent) {
-            foreach ($byParent->get($parentId, collect()) as $category) {
-                $childPath = $category->parent_id ? [...$path, $category->name] : [];
-                if ($category->childLevel()) {
-                    $options[] = [
-                        'id' => $category->id,
-                        'label' => ($category->parent_id ? implode(' › ', $childPath) : $category->name)
-                            . ' — tambah ' . DocumentCategory::LEVEL_LABELS[$category->childLevel()],
-                    ];
-                }
-                $walk($category->id, $childPath);
-            }
-        };
-        $walk(0, []);
-
-        return $options;
+        return DocumentCategory::where('level', 'kegiatan')->firstOrFail()->id;
     }
 }

@@ -14,6 +14,8 @@
     </div>
 
     <section class="panel mt-3">
+        @include('admin.document-categories._tabs')
+
         <form method="POST" action="{{ route('admin.authorities.store') }}">
             @csrf
             @include('admin.authorities._form')

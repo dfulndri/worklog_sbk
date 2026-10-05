@@ -45,15 +45,10 @@
                         <span class="nav-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
                         <span class="nav-text">Karyawan</span>
                     </a>
-                    <a class="nav-link {{ request()->routeIs('admin.document-categories.*') ? 'active' : '' }}"
+                    <a class="nav-link {{ request()->routeIs('admin.document-categories.*') || request()->routeIs('admin.authorities.*') ? 'active' : '' }}"
                         href="{{ route('admin.document-categories.index') }}">
                         <span class="nav-icon"><i class="bi bi-diagram-3" aria-hidden="true"></i></span>
                         <span class="nav-text">Kategori Dokumen</span>
-                    </a>
-                    <a class="nav-link {{ request()->routeIs('admin.authorities.*') ? 'active' : '' }}"
-                        href="{{ route('admin.authorities.index') }}">
-                        <span class="nav-icon"><i class="bi bi-bank" aria-hidden="true"></i></span>
-                        <span class="nav-text">Status Kewenangan</span>
                     </a>
                     <a class="nav-link {{ request()->routeIs('admin.job-stages.*') ? 'active' : '' }}"
                         href="{{ route('admin.job-stages.index') }}">
