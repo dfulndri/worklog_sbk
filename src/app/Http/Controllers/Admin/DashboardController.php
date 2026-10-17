@@ -23,20 +23,21 @@ class DashboardController extends Controller
             'jobs' => JobTask::count(),
         ];
 
-        $stageBreakdown = JobTask::selectRaw('stage, count(*) as total')
-            ->groupBy('stage')
-            ->pluck('total', 'stage');
+        $stageBreakdown = JobTask::join('job_stages', 'job_stages.id', '=', 'job_tasks.stage_id')
+            ->selectRaw('job_stages.group as job_group, count(*) as total')
+            ->groupBy('job_stages.group')
+            ->pluck('total', 'job_group');
 
-        $upcomingDeadlines = JobTask::with(['client', 'employee.user'])
+        $upcomingDeadlines = JobTask::with(['client', 'employee.user', 'stage'])
             ->whereNotNull('deadline')
             ->where('deadline', '>=', now()->toDateString())
             ->where('deadline', '<=', now()->addDays(7)->toDateString())
-            ->where('stage', '!=', 'final')
+            ->whereHas('stage', fn($q) => $q->where('group', '!=', 'final'))
             ->orderBy('deadline')
             ->take(5)
             ->get();
 
-        $latestJobs = JobTask::with(['client', 'employee.user'])
+        $latestJobs = JobTask::with(['client', 'employee.user', 'stage'])
             ->latest()
             ->take(5)
             ->get();

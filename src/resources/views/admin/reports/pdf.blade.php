@@ -63,7 +63,7 @@
                     <td>{{ $report->report_date->format('d-m-Y') }}</td>
                     <td>{{ $report->user->name ?? '-' }}</td>
                     <td>{{ $report->jobTask->client->name ?? '-' }}</td>
-                    <td>{{ $report->jobTask->documentType->name ?? '-' }}</td>
+                    <td>{{ $report->jobTask->documentCategory->name ?? '-' }}</td>
                     <td>{{ $report->progress }}%</td>
                     <td>{{ $report->description }}</td>
                     <td>{{ $report->obstacle ?? '-' }}</td>

@@ -44,6 +44,7 @@ class ReportController extends Controller
                 'Karyawan',
                 'Klien',
                 'Jenis Dokumen',
+                'Tahapan',
                 'Progress (%)',
                 'Uraian',
                 'Kendala',
@@ -55,7 +56,8 @@ class ReportController extends Controller
                     $report->report_date->format('d-m-Y'),
                     $report->user->name ?? '-',
                     $report->jobTask->client->name ?? '-',
-                    $report->jobTask->documentType->name ?? '-',
+                    $report->jobTask->documentCategory->name ?? '-',
+                    $report->stage->name ?? '-',
                     $report->progress,
                     $report->description,
                     $report->obstacle,
@@ -83,7 +85,7 @@ class ReportController extends Controller
 
     private function filteredQuery(Request $request)
     {
-        return DailyReport::with(['user', 'jobTask.client', 'jobTask.documentType'])
+        return DailyReport::with(['user', 'stage', 'jobTask.client', 'jobTask.documentCategory'])
             ->when($request->filled('client_id'), function ($q) use ($request) {
                 $q->whereHas('jobTask', fn($j) => $j->where('client_id', $request->client_id));
             })

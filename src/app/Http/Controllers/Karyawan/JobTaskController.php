@@ -13,13 +13,13 @@ class JobTaskController extends Controller
     {
         $employee = Auth::user()->employee;
 
-        $jobs = JobTask::with(['client', 'documentType'])
+        $jobs = JobTask::with(['client', 'documentCategory.parent.parent', 'stage'])
             ->when($employee, fn($q) => $q->where('employee_id', $employee->id), fn($q) => $q->whereRaw('1 = 0'))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $search = $request->search;
                 $q->where(function ($sub) use ($search) {
                     $sub->whereHas('client', fn($c) => $c->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('documentType', fn($d) => $d->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('documentCategory', fn($d) => $d->where('name', 'like', "%{$search}%"));
                 });
             })
             ->latest()

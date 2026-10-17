@@ -8,8 +8,8 @@
             <span class="page-icon"><i class="bi bi-kanban" aria-hidden="true"></i></span>
             <div>
                 <p class="eyebrow mb-1">Monitoring</p>
-                <h1 class="h3 mb-1">{{ $job->client->name ?? '-' }} — {{ $job->documentType->name ?? '-' }}</h1>
-                <p class="text-muted mb-0">{{ $job->title ?? 'Detail pekerjaan dan histori aktivitas harian.' }}</p>
+                <h1 class="h3 mb-1">{{ $job->client->name ?? '-' }} — {{ $job->documentCategory->name ?? '-' }}</h1>
+                <p class="text-muted mb-0">{{ $job->documentCategory->pathLabel() ?? '-' }}</p>
             </div>
         </div>
         <div class="heading-actions">
@@ -32,8 +32,17 @@
                     <dt class="col-5 text-muted">Tenaga Ahli</dt>
                     <dd class="col-7">{{ $job->expert->name ?? '-' }}</dd>
 
+                    <dt class="col-5 text-muted">Status Kewenangan</dt>
+                    <dd class="col-7">{{ $job->authority->name ?? '-' }}</dd>
+
                     <dt class="col-5 text-muted">Tahapan</dt>
-                    <dd class="col-7"><span class="badge text-bg-secondary">{{ ucfirst($job->stage) }}</span></dd>
+                    <dd class="col-7">
+                        @if ($job->stage)
+                            <span class="badge {{ $job->stage->groupBadge() }}">{{ $job->stage->name }}</span>
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
+                    </dd>
 
                     <dt class="col-5 text-muted">Progress</dt>
                     <dd class="col-7">
@@ -63,8 +72,13 @@
                     <div class="activity-item">
                         <span class="activity-dot bg-primary"></span>
                         <div>
-                            <p class="mb-1 fw-semibold">{{ $report->report_date->format('d M Y') }} — Progress
-                                {{ $report->progress }}%</p>
+                            <p class="mb-1 fw-semibold">{{ $report->report_date->format('d M Y') }} —
+                                @if ($report->stage)
+                                    <span
+                                        class="badge {{ $report->stage->groupBadge() }}">{{ $report->stage->name }}</span>
+                                @endif
+                                Progress {{ $report->progress }}%
+                            </p>
                             <p class="text-muted small mb-1">{{ $report->description }}</p>
                             @if ($report->obstacle)
                                 <p class="text-danger small mb-1"><i class="bi bi-exclamation-triangle"></i> Kendala:

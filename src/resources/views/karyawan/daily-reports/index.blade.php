@@ -37,7 +37,10 @@
                         <p class="mb-1 fw-semibold">
                             {{ $report->report_date->format('d M Y') }} —
                             {{ $report->jobTask->client->name ?? '-' }}
-                            ({{ $report->jobTask->documentType->name ?? '-' }})
+                            ({{ $report->jobTask->documentCategory->name ?? '-' }})
+                            @if ($report->stage)
+                                <span class="badge {{ $report->stage->groupBadge() }}">{{ $report->stage->name }}</span>
+                            @endif
                             <span class="badge text-bg-secondary">{{ $report->progress }}%</span>
                         </p>
                         <p class="text-muted small mb-1">{{ $report->description }}</p>

@@ -156,7 +156,7 @@
                             <div>
                                 <p class="mb-1 fw-semibold">{{ $job->client->name ?? '-' }} —
                                     {{ $job->employee->user->name ?? '-' }}</p>
-                                <p class="text-muted small mb-0">Tahapan: {{ ucfirst($job->stage) }}</p>
+                                <p class="text-muted small mb-0">Tahapan: {{ $job->stage->name ?? '-' }}</p>
                             </div>
                             <span
                                 class="badge text-bg-danger align-self-center">{{ $job->deadline->format('d M Y') }}</span>
@@ -218,7 +218,13 @@
                         <tr>
                             <td>{{ $job->client->name ?? '-' }}</td>
                             <td>{{ $job->employee->user->name ?? '-' }}</td>
-                            <td><span class="badge text-bg-secondary">{{ ucfirst($job->stage) }}</span></td>
+                            <td>
+                                @if ($job->stage)
+                                    <span class="badge {{ $job->stage->groupBadge() }}">{{ $job->stage->name }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td>{{ $job->progress }}%</td>
                             <td>{{ $job->deadline?->format('d M Y') ?? '-' }}</td>
                         </tr>

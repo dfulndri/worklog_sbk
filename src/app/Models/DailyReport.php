@@ -9,6 +9,7 @@ class DailyReport extends Model
     protected $fillable = [
         'user_id',
         'job_task_id',
+        'stage_id',
         'report_date',
         'progress',
         'description',
@@ -20,9 +21,15 @@ class DailyReport extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function jobTask()
     {
         return $this->belongsTo(JobTask::class);
+    }
+
+    public function stage()
+    {
+        return $this->belongsTo(JobStage::class);
     }
 
     protected function casts(): array

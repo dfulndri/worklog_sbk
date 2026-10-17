@@ -41,19 +41,21 @@
                 </thead>
                 <tbody>
                     @forelse ($jobs as $job)
-                        @php
-                            $stageBadge =
-                                [
-                                    'draft' => 'text-bg-secondary',
-                                    'revisi' => 'text-bg-warning',
-                                    'sidang' => 'text-bg-info',
-                                    'final' => 'text-bg-success',
-                                ][$job->stage] ?? 'text-bg-secondary';
-                        @endphp
                         <tr>
                             <td class="fw-semibold">{{ $job->client->name ?? '-' }}</td>
-                            <td>{{ $job->documentType->name ?? '-' }}</td>
-                            <td><span class="badge {{ $stageBadge }}">{{ ucfirst($job->stage) }}</span></td>
+                            <td>
+                                {{ $job->documentCategory->name ?? '-' }}
+                                @if ($job->documentCategory)
+                                    <br><small class="text-muted">{{ $job->documentCategory->pathLabel() }}</small>
+                                @endif
+                            </td>
+                            <td>
+                                @if ($job->stage)
+                                    <span class="badge {{ $job->stage->groupBadge() }}">{{ $job->stage->name }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td>
                                 <div class="progress" style="height: 6px; min-width: 100px;">
                                     <div class="progress-bar" role="progressbar" style="width: {{ $job->progress }}%">

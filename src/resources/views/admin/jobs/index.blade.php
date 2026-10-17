@@ -39,15 +39,15 @@
                 </select>
             </div>
             <div class="col-auto">
-                <select name="stage" class="form-select form-select-sm" onchange="this.form.submit()">
+                <select name="stage_id" class="form-select form-select-sm" onchange="this.form.submit()">
                     <option value="">Semua Tahapan</option>
-                    <option value="draft" @selected(request('stage') === 'draft')>Draft</option>
-                    <option value="revisi" @selected(request('stage') === 'revisi')>Revisi</option>
-                    <option value="sidang" @selected(request('stage') === 'sidang')>Sidang</option>
-                    <option value="final" @selected(request('stage') === 'final')>Final</option>
+                    @foreach ($stages as $stage)
+                        <option value="{{ $stage->id }}" @selected(request('stage_id') == $stage->id)>
+                            {{ $stage->name }} ({{ $stage->groupLabel() }})</option>
+                    @endforeach
                 </select>
             </div>
-            @if (request('client_id') || request('stage'))
+            @if (request('client_id') || request('stage_id'))
                 <div class="col-auto">
                     <a href="{{ route('admin.jobs.index') }}" class="btn btn-outline-secondary btn-sm">Reset Filter</a>
                 </div>
@@ -71,19 +71,19 @@
                     @forelse ($jobs as $job)
                         <tr>
                             <td class="fw-semibold">{{ $job->client->name ?? '-' }}</td>
-                            <td>{{ $job->documentType->name ?? '-' }}</td>
+                            <td>
+                                {{ $job->documentCategory->name ?? '-' }}
+                                @if ($job->documentCategory)
+                                    <br><small class="text-muted">{{ $job->documentCategory->pathLabel() }}</small>
+                                @endif
+                            </td>
                             <td>{{ $job->employee->user->name ?? '-' }}</td>
                             <td>
-                                @php
-                                    $stageBadge =
-                                        [
-                                            'draft' => 'text-bg-secondary',
-                                            'revisi' => 'text-bg-warning',
-                                            'sidang' => 'text-bg-info',
-                                            'final' => 'text-bg-success',
-                                        ][$job->stage] ?? 'text-bg-secondary';
-                                @endphp
-                                <span class="badge {{ $stageBadge }}">{{ ucfirst($job->stage) }}</span>
+                                @if ($job->stage)
+                                    <span class="badge {{ $job->stage->groupBadge() }}">{{ $job->stage->name }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
                             </td>
                             <td>
                                 <div class="progress" style="height: 6px; min-width: 100px;">
