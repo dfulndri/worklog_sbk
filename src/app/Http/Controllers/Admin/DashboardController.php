@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\DocumentCategory;
 use App\Models\DailyReport;
 use App\Models\Employee;
 use App\Models\Expert;
@@ -23,16 +24,13 @@ class DashboardController extends Controller
             'jobs' => JobTask::count(),
         ];
 
-        $stageBreakdown = JobTask::join('job_stages', 'job_stages.id', '=', 'job_tasks.stage_id')
-            ->selectRaw('job_stages.group as job_group, count(*) as total')
-            ->groupBy('job_stages.group')
-            ->pluck('total', 'job_group');
+        $progressData = $this->progressData();
 
         $upcomingDeadlines = JobTask::with(['client', 'employee.user', 'stage'])
             ->whereNotNull('deadline')
             ->where('deadline', '>=', now()->toDateString())
             ->where('deadline', '<=', now()->addDays(7)->toDateString())
-            ->whereHas('stage', fn($q) => $q->where('group', '!=', 'final'))
+            ->where('progress', '<', 100)
             ->orderBy('deadline')
             ->take(5)
             ->get();
@@ -104,7 +102,7 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', compact(
             'stats',
-            'stageBreakdown',
+            'progressData',
             'upcomingDeadlines',
             'latestJobs',
             'periodStats',
@@ -115,5 +113,48 @@ class DashboardController extends Controller
             'year',
             'month'
         ));
+    }
+
+    /**
+     * Data untuk panel "Pekerjaan per Progress": jumlah per kategori & progress (dari DB),
+     * plus daftar pekerjaan (maks. 1000 terbaru) untuk ditampilkan saat batang diklik.
+     * Semuanya array PHP polos supaya aman dipakai @json di Blade.
+     */
+    private function progressData(): array
+    {
+        $categories = DocumentCategory::where('level', 'kategori')
+            ->orderBy('sort_order')->orderBy('id')->get(['id', 'name'])
+            ->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->values()->all();
+
+        $counts = [];
+        $rows = JobTask::join('job_stages', 'job_stages.id', '=', 'job_tasks.stage_id')
+            ->selectRaw('job_stages.category_id as cid, job_stages.phase as phase, count(*) as total')
+            ->groupBy('job_stages.category_id', 'job_stages.phase')
+            ->get();
+        foreach ($rows as $row) {
+            $counts[$row->cid][$row->phase] = (int) $row->total;
+        }
+
+        $jobs = JobTask::with(['client', 'documentCategory.parent.parent', 'stage', 'employee.user'])
+            ->latest()->limit(1000)->get()
+            ->filter(fn($job) => $job->stage)
+            ->map(fn($job) => [
+                'id' => $job->id,
+                'client' => $job->client->name ?? '-',
+                'category_id' => (int) $job->stage->category_id,
+                'path' => $job->documentCategory?->pathLabel() ?? '-',
+                'stage' => $job->stage->name,
+                'pic' => $job->employee->user->name ?? '-',
+                'phase' => (int) $job->stage->phase,
+                'progress' => $job->progress,
+                'url' => route('admin.jobs.show', $job),
+            ])->values()->all();
+
+        return [
+            'categories' => $categories,
+            'counts' => $counts,
+            'jobs' => $jobs,
+            'indexUrl' => route('admin.jobs.index'),
+        ];
     }
 }

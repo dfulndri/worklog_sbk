@@ -116,37 +116,26 @@
         </div>
     </section>
 
-    <section class="row g-3 mt-3">
-        <div class="col-12 col-xl-4">
-            <div class="panel h-100">
-                <h2 class="h5 mb-3 section-title"><i class="bi bi-pie-chart" aria-hidden="true"></i><span>Pekerjaan per
-                        Tahapan</span></h2>
-                @php
-                    $stages = ['draft' => 'Draft', 'revisi' => 'Revisi', 'sidang' => 'Sidang', 'final' => 'Final'];
-                    $stageColor = [
-                        'draft' => 'secondary',
-                        'revisi' => 'warning',
-                        'sidang' => 'info',
-                        'final' => 'success',
-                    ];
-                @endphp
-                @foreach ($stages as $key => $label)
-                    @php $count = $stageBreakdown[$key] ?? 0; @endphp
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge text-bg-{{ $stageColor[$key] }}">{{ $label }}</span>
-                        <strong>{{ $count }}</strong>
-                    </div>
-                @endforeach
+    <section class="panel mt-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h5 mb-0 section-title"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Pekerjaan
+                    per Progress</span></h2>
+            <div id="progressCategoryFilter" class="btn-group btn-group-sm" role="group" aria-label="Filter kategori">
             </div>
         </div>
+        <div id="progressBars" class="d-flex flex-column gap-2"></div>
+        <div id="progressList" class="mt-3 pt-3 border-top"></div>
+    </section>
 
-        <div class="col-12 col-xl-8">
+    <section class="row g-3 mt-3">
+        <div class="col-12">
             <div class="panel h-100">
                 <div class="panel-header">
                     <div>
                         <h2 class="h5 mb-1 section-title"><i class="bi bi-alarm" aria-hidden="true"></i><span>Deadline
                                 Mendekat (7 hari)</span></h2>
-                        <p class="text-muted mb-0">Pekerjaan yang belum final dan deadline-nya sudah dekat.</p>
+                        <p class="text-muted mb-0">Pekerjaan yang belum selesai (progress di bawah 100%) dan deadline-nya
+                            sudah dekat.</p>
                     </div>
                 </div>
                 @forelse ($upcomingDeadlines as $job)
@@ -220,7 +209,9 @@
                             <td>{{ $job->employee->user->name ?? '-' }}</td>
                             <td>
                                 @if ($job->stage)
-                                    <span class="badge {{ $job->stage->groupBadge() }}">{{ $job->stage->name }}</span>
+                                    <span
+                                        class="badge {{ $job->stage->phaseBadge() }}">{{ $job->stage->phaseLabel() }}</span>
+                                    <small class="text-muted">{{ $job->stage->name }}</small>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -292,5 +283,122 @@
                 }
             });
         }
+    </script>
+@endpush
+
+@push('scripts')
+    <script>
+        (function() {
+            const data = @json($progressData);
+            const MAX_ROWS = 50;
+            let cat = 'all';
+            let phase = 1;
+
+            const esc = (v) => String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, (c) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            } [c]));
+
+            const catName = (id) => (data.categories.find((c) => String(c.id) === String(id)) || {}).name || '';
+            const inCat = (categoryId) => cat === 'all' || String(categoryId) === cat;
+
+            function countFor(p) {
+                let total = 0;
+                data.categories.forEach(function(c) {
+                    if (inCat(c.id) && data.counts[c.id] && data.counts[c.id][p]) {
+                        total += data.counts[c.id][p];
+                    }
+                });
+                return total;
+            }
+
+            function render() {
+                const filterEl = document.getElementById('progressCategoryFilter');
+                const options = [{
+                    id: 'all',
+                    name: 'Semua'
+                }].concat(data.categories);
+                filterEl.innerHTML = options.map(function(o) {
+                    const active = String(o.id) === cat;
+                    return '<button type="button" class="btn ' + (active ? 'btn-primary' :
+                            'btn-outline-secondary') +
+                        '" data-cat="' + esc(o.id) + '">' + esc(o.name) + '</button>';
+                }).join('');
+
+                const counts = [1, 2, 3, 4].map(countFor);
+                const max = Math.max(1, Math.max.apply(null, counts));
+
+                document.getElementById('progressBars').innerHTML = counts.map(function(n, i) {
+                    const p = i + 1;
+                    const selected = phase === p;
+                    const width = n === 0 ? 0 : Math.max(3, Math.round(n / max * 100));
+                    return '<button type="button" data-phase="' + p + '" class="btn text-start w-100 p-2" ' +
+                        'style="display:grid; grid-template-columns:110px minmax(0,1fr) 36px; align-items:center; gap:12px; ' +
+                        'border:1px solid ' + (selected ? 'var(--admin-primary, #2563eb)' :
+                            'var(--admin-border, #e2e8f0)') + ';' +
+                        (selected ?
+                            ' background: color-mix(in srgb, var(--admin-primary, #2563eb) 8%, transparent);' :
+                            '') + '">' +
+                        '<span><strong class="d-block">Progress ' + p + '</strong><small class="text-muted">' +
+                        (p * 25) + '%</small></span>' +
+                        '<span class="progress" style="height:16px;"><span class="progress-bar" style="width:' +
+                        width + '%"></span></span>' +
+                        '<strong class="text-end">' + n + '</strong></button>';
+                }).join('');
+
+                const rows = data.jobs.filter((j) => j.phase === phase && inCat(j.category_id));
+                const total = countFor(phase);
+                const byClient = {};
+                rows.slice(0, MAX_ROWS).forEach(function(j) {
+                    (byClient[j.client] = byClient[j.client] || []).push(j);
+                });
+
+                let out = '<div class="d-flex justify-content-between align-items-center mb-2">' +
+                    '<strong>Progress ' + phase + ' &middot; ' + total + ' pekerjaan</strong>' +
+                    '<a class="small" href="' + esc(data.indexUrl) + '?phase=' + phase +
+                    (cat !== 'all' ? '&kategori_id=' + encodeURIComponent(cat) : '') +
+                    '">Lihat semua di Pekerjaan</a></div>';
+
+                if (rows.length === 0) {
+                    out += '<p class="text-muted mb-0">Tidak ada pekerjaan di progress ini.</p>';
+                }
+
+                Object.keys(byClient).sort().forEach(function(client) {
+                    out += '<div class="small text-muted mt-3 mb-1">' + esc(client) + ' &middot; ' + byClient[
+                        client].length + '</div>';
+                    byClient[client].forEach(function(j) {
+                        out += '<a href="' + esc(j.url) +
+                            '" class="d-flex justify-content-between gap-3 py-2 border-top text-decoration-none" style="color:inherit;">' +
+                            '<span><span class="d-block">' + esc(j.path) + '</span>' +
+                            '<small class="text-muted">' + esc(j.stage) + ' &middot; PIC ' + esc(j
+                            .pic) + '</small></span>' +
+                            '<span class="text-end text-nowrap"><strong class="d-block">' + esc(j
+                                .progress) + '%</strong>' +
+                            '<small class="text-muted">' + esc(catName(j.category_id)) +
+                            '</small></span></a>';
+                    });
+                });
+
+                document.getElementById('progressList').innerHTML = out;
+
+                filterEl.querySelectorAll('button').forEach(function(b) {
+                    b.onclick = function() {
+                        cat = b.dataset.cat;
+                        render();
+                    };
+                });
+                document.querySelectorAll('#progressBars button').forEach(function(b) {
+                    b.onclick = function() {
+                        phase = parseInt(b.dataset.phase, 10);
+                        render();
+                    };
+                });
+            }
+
+            render();
+        })();
     </script>
 @endpush

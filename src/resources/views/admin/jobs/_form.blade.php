@@ -6,9 +6,14 @@
     $selectedAuthority = old('authority_id', $job->authority_id ?? '');
     $currentProgress = old('progress', $job->progress ?? 0);
 
-    $sel = $selected ?? ['kategori_id' => old('_kategori_id'), 'sub_kategori_id' => null, 'dokumen_id' => null];
+    $sel = old('_kategori_id')
+        ? [
+            'kategori_id' => old('_kategori_id'),
+            'sub_kategori_id' => old('_sub_kategori_id'),
+            'dokumen_id' => old('_dokumen_id'),
+        ]
+        : $selected ?? ['kategori_id' => null, 'sub_kategori_id' => null, 'dokumen_id' => null];
     $currentCategoryId = old('document_category_id', $job->document_category_id ?? '');
-    $stageWeightsJs = $stages->pluck('weight', 'id');
 @endphp
 
 <div class="row g-3">
@@ -52,19 +57,6 @@
         @enderror
     </div>
 
-    <div class="col-md-6">
-        <label class="form-label" for="stage_id">Tahapan</label>
-        <select class="form-select @error('stage_id') is-invalid @enderror" id="stage_id" name="stage_id" required>
-            <option value="">Pilih Tahapan</option>
-            @foreach ($stages as $stage)
-                <option value="{{ $stage->id }}" @selected($selectedStage == $stage->id)>
-                    {{ $stage->name }} ({{ $stage->groupLabel() }})</option>
-            @endforeach
-        </select>
-        @error('stage_id')
-            <div class="invalid-feedback d-block">{{ $message }}</div>
-        @enderror
-    </div>
 </div>
 
 <hr class="my-4">
@@ -73,7 +65,7 @@
 <div class="row g-3">
     <div class="col-md-4">
         <label class="form-label" for="kategori_select">Kategori</label>
-        <select class="form-select" id="kategori_select">
+        <select class="form-select" id="kategori_select" name="_kategori_id">
             <option value="">Pilih Kategori</option>
             @foreach ($kategoriList as $k)
                 <option value="{{ $k->id }}" @selected($sel['kategori_id'] == $k->id)>{{ $k->name }}</option>
@@ -83,14 +75,14 @@
 
     <div class="col-md-4">
         <label class="form-label" for="sub_kategori_select">Sub Kategori</label>
-        <select class="form-select" id="sub_kategori_select" disabled>
+        <select class="form-select" id="sub_kategori_select" name="_sub_kategori_id" disabled>
             <option value="">Pilih Kategori dulu</option>
         </select>
     </div>
 
     <div class="col-md-4" id="dokumen_wrapper" style="display:none;">
         <label class="form-label" for="dokumen_select">Jenis Dokumen</label>
-        <select class="form-select" id="dokumen_select">
+        <select class="form-select" id="dokumen_select" name="_dokumen_id">
             <option value="">Pilih Sub Kategori dulu</option>
         </select>
     </div>
@@ -114,6 +106,18 @@
             <div class="invalid-feedback d-block">{{ $message }}</div>
         @enderror
         <div class="form-text">Wajib diisi untuk jenis dokumen lingkungan ini.</div>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="stage_id">Tahapan</label>
+        <select class="form-select @error('stage_id') is-invalid @enderror" id="stage_id" name="stage_id" required
+            disabled>
+            <option value="">Pilih Kategori dulu</option>
+        </select>
+        @error('stage_id')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
+        <div class="form-text">Tahapan mengikuti kategori (Kontruksi / Non Kontruksi).</div>
     </div>
 </div>
 
@@ -163,7 +167,8 @@
             const subKategoriOptions = @json($subKategoriOptionsJs);
             const dokumenOptions = @json($dokumenOptionsJs);
             const initialSelection = @json($sel);
-            const stageWeights = @json($stageWeightsJs);
+            const stageOptions = @json($stageOptionsJs);
+            const initialStageId = @json($selectedStage);
 
             const kategoriSelect = document.getElementById('kategori_select');
             const subKategoriSelect = document.getElementById('sub_kategori_select');
@@ -191,6 +196,36 @@
                 if (!requiresAuthority) {
                     authoritySelect.value = '';
                 }
+            }
+
+            const stageSelect = document.getElementById('stage_id');
+
+            function populateStages(kategoriId, selectedId) {
+                stageSelect.innerHTML = '';
+                if (!kategoriId) {
+                    stageSelect.innerHTML = '<option value="">Pilih Kategori dulu</option>';
+                    stageSelect.disabled = true;
+                    return;
+                }
+                stageSelect.disabled = false;
+                stageSelect.appendChild(new Option('Pilih Tahapan', ''));
+                [1, 2, 3, 4].forEach(function(phase) {
+                    const items = stageOptions.filter((st) => String(st.category_id) === String(kategoriId) &&
+                        st.phase === phase);
+                    if (!items.length) {
+                        return;
+                    }
+                    const group = document.createElement('optgroup');
+                    group.label = 'Progress ' + phase + ' (' + (phase * 25) + '%)';
+                    items.forEach(function(st) {
+                        const opt = new Option(st.name, st.id);
+                        if (selectedId && String(st.id) === String(selectedId)) {
+                            opt.selected = true;
+                        }
+                        group.appendChild(opt);
+                    });
+                    stageSelect.appendChild(group);
+                });
             }
 
             function onSubKategoriResolved(subKategoriId, keepDokumenId) {
@@ -225,6 +260,7 @@
                 dokumenWrapper.style.display = 'none';
                 hiddenInput.value = '';
                 toggleAuthority(false);
+                populateStages(e.target.value, null);
             });
 
             subKategoriSelect.addEventListener('change', function(e) {
@@ -237,8 +273,9 @@
                 toggleAuthority(!!(docItem && docItem.requires_authority));
             });
 
-            // Pre-fill saat edit.
+            // Pre-fill saat edit / setelah validasi gagal.
             if (initialSelection.kategori_id) {
+                populateStages(initialSelection.kategori_id, initialStageId);
                 const subChildren = subKategoriOptions.filter((s) => String(s.parent_id) === String(initialSelection
                     .kategori_id));
                 fillSelect(subKategoriSelect, subChildren, 'Pilih Sub Kategori', initialSelection.sub_kategori_id);
@@ -250,11 +287,10 @@
             }
 
             // Isi otomatis progress dengan bobot tahapan saat tahapan dipilih (tetap bisa diubah manual).
-            const stageSelect = document.getElementById('stage_id');
-            stageSelect?.addEventListener('change', function(e) {
-                const weight = stageWeights[e.target.value];
-                if (weight !== undefined) {
-                    document.getElementById('progress').value = weight;
+            stageSelect.addEventListener('change', function(e) {
+                const stage = stageOptions.find((st) => String(st.id) === e.target.value);
+                if (stage) {
+                    document.getElementById('progress').value = stage.weight;
                 }
             });
         })();

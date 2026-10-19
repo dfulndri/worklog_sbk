@@ -39,7 +39,7 @@
                             {{ $report->jobTask->client->name ?? '-' }}
                             ({{ $report->jobTask->documentCategory->name ?? '-' }})
                             @if ($report->stage)
-                                <span class="badge {{ $report->stage->groupBadge() }}">{{ $report->stage->name }}</span>
+                                <span class="badge {{ $report->stage->phaseBadge() }}">{{ $report->stage->name }}</span>
                             @endif
                             <span class="badge text-bg-secondary">{{ $report->progress }}%</span>
                         </p>

@@ -38,7 +38,8 @@
                     <dt class="col-5 text-muted">Tahapan</dt>
                     <dd class="col-7">
                         @if ($job->stage)
-                            <span class="badge {{ $job->stage->groupBadge() }}">{{ $job->stage->name }}</span>
+                            <span class="badge {{ $job->stage->phaseBadge() }}">{{ $job->stage->phaseLabel() }}</span>
+                            <small class="text-muted">{{ $job->stage->name }}</small>
                         @else
                             <span class="text-muted">-</span>
                         @endif
@@ -75,7 +76,7 @@
                             <p class="mb-1 fw-semibold">{{ $report->report_date->format('d M Y') }} —
                                 @if ($report->stage)
                                     <span
-                                        class="badge {{ $report->stage->groupBadge() }}">{{ $report->stage->name }}</span>
+                                        class="badge {{ $report->stage->phaseBadge() }}">{{ $report->stage->name }}</span>
                                 @endif
                                 Progress {{ $report->progress }}%
                             </p>

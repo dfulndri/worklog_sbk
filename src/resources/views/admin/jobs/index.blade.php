@@ -39,15 +39,32 @@
                 </select>
             </div>
             <div class="col-auto">
-                <select name="stage_id" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">Semua Tahapan</option>
-                    @foreach ($stages as $stage)
-                        <option value="{{ $stage->id }}" @selected(request('stage_id') == $stage->id)>
-                            {{ $stage->name }} ({{ $stage->groupLabel() }})</option>
+                <select name="kategori_id" class="form-select form-select-sm"
+                    onchange="this.form.bidang_id.value=''; this.form.submit()">
+                    <option value="">Semua Kategori</option>
+                    @foreach ($kategoriList as $k)
+                        <option value="{{ $k->id }}" @selected(request('kategori_id') == $k->id)>{{ $k->name }}</option>
                     @endforeach
                 </select>
             </div>
-            @if (request('client_id') || request('stage_id'))
+            <div class="col-auto">
+                <select name="bidang_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Semua Bidang</option>
+                    @foreach ($bidangList as $b)
+                        <option value="{{ $b->id }}" @selected(request('bidang_id') == $b->id)>{{ $b->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="phase" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Semua Progress</option>
+                    @foreach (\App\Models\JobStage::PHASES as $value => $label)
+                        <option value="{{ $value }}" @selected(request('phase') == $value)>{{ $label }}
+                            ({{ $value * 25 }}%)</option>
+                    @endforeach
+                </select>
+            </div>
+            @if (request('client_id') || request('kategori_id') || request('bidang_id') || request('phase'))
                 <div class="col-auto">
                     <a href="{{ route('admin.jobs.index') }}" class="btn btn-outline-secondary btn-sm">Reset Filter</a>
                 </div>
@@ -80,7 +97,9 @@
                             <td>{{ $job->employee->user->name ?? '-' }}</td>
                             <td>
                                 @if ($job->stage)
-                                    <span class="badge {{ $job->stage->groupBadge() }}">{{ $job->stage->name }}</span>
+                                    <span
+                                        class="badge {{ $job->stage->phaseBadge() }}">{{ $job->stage->phaseLabel() }}</span>
+                                    <br><small class="text-muted">{{ $job->stage->name }}</small>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif

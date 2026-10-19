@@ -33,6 +33,17 @@ class DocumentCategory extends Model
         return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order')->orderBy('id');
     }
 
+    /** ID Kategori (Kontruksi / Non Kontruksi) tempat node ini berada. */
+    public function kategoriId(): ?int
+    {
+        $node = $this;
+        while ($node && $node->level !== 'kategori') {
+            $node = $node->parent;
+        }
+
+        return $node?->id;
+    }
+
     public function levelLabel(): string
     {
         return self::LEVEL_LABELS[$this->level] ?? $this->level;

@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class DailyReportController extends Controller
 {
@@ -34,9 +35,9 @@ class DailyReportController extends Controller
     public function create()
     {
         $jobs = $this->myJobs();
-        $stages = JobStage::orderBy('order_no')->get();
+        $stageOptionsJs = $this->stageOptions();
 
-        return view('karyawan.daily-reports.create', compact('jobs', 'stages'));
+        return view('karyawan.daily-reports.create', compact('jobs', 'stageOptionsJs'));
     }
 
     public function store(Request $request)
@@ -44,6 +45,7 @@ class DailyReportController extends Controller
         $job = $this->ownedJob($request->input('job_task_id'));
 
         $data = $this->validated($request);
+        $this->assertStageMatchesJob($job, (int) $data['stage_id']);
 
         DB::transaction(function () use ($data, $job) {
             DailyReport::create([
@@ -81,9 +83,9 @@ class DailyReportController extends Controller
         abort_unless($daily_report->user_id === Auth::id(), 403);
 
         $jobs = $this->myJobs();
-        $stages = JobStage::orderBy('order_no')->get();
+        $stageOptionsJs = $this->stageOptions();
 
-        return view('karyawan.daily-reports.edit', ['report' => $daily_report, 'jobs' => $jobs, 'stages' => $stages]);
+        return view('karyawan.daily-reports.edit', ['report' => $daily_report, 'jobs' => $jobs, 'stageOptionsJs' => $stageOptionsJs]);
     }
 
     public function update(Request $request, DailyReport $daily_report)
@@ -92,6 +94,7 @@ class DailyReportController extends Controller
 
         $job = $this->ownedJob($request->input('job_task_id'));
         $data = $this->validated($request);
+        $this->assertStageMatchesJob($job, (int) $data['stage_id']);
 
         DB::transaction(function () use ($data, $job, $daily_report) {
             $previousJobId = $daily_report->job_task_id;
@@ -185,5 +188,31 @@ class DailyReportController extends Controller
         if ($latest) {
             $job->update(['progress' => $latest->progress, 'stage_id' => $latest->stage_id]);
         }
+    }
+
+    /** Tahapan hanya boleh dari kategori (Kontruksi / Non Kontruksi) yang sama dengan pekerjaannya. */
+    private function assertStageMatchesJob(JobTask $job, int $stageId): void
+    {
+        $job->loadMissing('stage');
+        $stage = JobStage::findOrFail($stageId);
+
+        if ($job->stage && $stage->category_id !== $job->stage->category_id) {
+            throw ValidationException::withMessages([
+                'stage_id' => 'Tahapan tidak sesuai dengan kategori pekerjaan ini.',
+            ]);
+        }
+    }
+
+    /** Opsi tahapan untuk dropdown (array polos, aman untuk @json). */
+    private function stageOptions(): array
+    {
+        return JobStage::orderBy('order_no')->get()
+            ->map(fn($st) => [
+                'id' => $st->id,
+                'name' => $st->name,
+                'phase' => $st->phase,
+                'category_id' => $st->category_id,
+                'weight' => $st->weight,
+            ])->values()->all();
     }
 }

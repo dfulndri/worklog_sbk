@@ -1,7 +1,6 @@
 @php
     $selectedJob = old('job_task_id', $report->job_task_id ?? '');
     $selectedStage = old('stage_id', $report->stage_id ?? '');
-    $stageWeightsJs = $stages->pluck('weight', 'id');
 @endphp
 
 <div class="row g-3">
@@ -12,7 +11,7 @@
             <option value="">Pilih Pekerjaan</option>
             @foreach ($jobs as $job)
                 <option value="{{ $job->id }}" data-progress="{{ $job->progress }}" data-stage="{{ $job->stage_id }}"
-                    @selected($selectedJob == $job->id)>
+                    data-category="{{ $job->stage->category_id ?? '' }}" @selected($selectedJob == $job->id)>
                     {{ $job->client->name ?? '-' }} — {{ $job->documentCategory->name ?? '-' }}
                     ({{ $job->progress }}%)
                 </option>
@@ -36,11 +35,9 @@
 
     <div class="col-md-3">
         <label class="form-label" for="stage_id">Tahapan</label>
-        <select class="form-select @error('stage_id') is-invalid @enderror" id="stage_id" name="stage_id" required>
-            <option value="">Pilih Tahapan</option>
-            @foreach ($stages as $stage)
-                <option value="{{ $stage->id }}" @selected($selectedStage == $stage->id)>{{ $stage->name }}</option>
-            @endforeach
+        <select class="form-select @error('stage_id') is-invalid @enderror" id="stage_id" name="stage_id" required
+            disabled>
+            <option value="">Pilih Pekerjaan dulu</option>
         </select>
         @error('stage_id')
             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -95,37 +92,68 @@
 @push('scripts')
     <script>
         (function() {
-            const stageWeights = @json($stageWeightsJs);
+            const stageOptions = @json($stageOptionsJs);
+            const initialStageId = @json($selectedStage);
             const jobSelect = document.getElementById('job_task_id');
             const stageSelect = document.getElementById('stage_id');
             const progressInput = document.getElementById('progress');
 
-            // Pilih pekerjaan -> tahapan ikut ke tahapan terakhir pekerjaan itu (kalau ada).
-            jobSelect?.addEventListener('change', function(e) {
-                const selected = e.target.options[e.target.selectedIndex];
-                const stageId = selected.getAttribute('data-stage');
-                if (stageId && stageId !== '') {
-                    stageSelect.value = stageId;
-                } else {
-                    const currentProgress = selected.getAttribute('data-progress');
-                    if (currentProgress !== null) {
-                        progressInput.value = currentProgress;
-                    }
+            function populateStages(categoryId, selectedId) {
+                stageSelect.innerHTML = '';
+                if (!categoryId) {
+                    stageSelect.appendChild(new Option('Pilih Pekerjaan dulu', ''));
+                    stageSelect.disabled = true;
                     return;
                 }
-                const weight = stageWeights[stageSelect.value];
-                if (weight !== undefined) {
-                    progressInput.value = weight;
+                stageSelect.disabled = false;
+                stageSelect.appendChild(new Option('Pilih Tahapan', ''));
+                [1, 2, 3, 4].forEach(function(phase) {
+                    const items = stageOptions.filter((st) => String(st.category_id) === String(categoryId) &&
+                        st.phase === phase);
+                    if (!items.length) {
+                        return;
+                    }
+                    const group = document.createElement('optgroup');
+                    group.label = 'Progress ' + phase + ' (' + (phase * 25) + '%)';
+                    items.forEach(function(st) {
+                        const opt = new Option(st.name, st.id);
+                        if (selectedId && String(st.id) === String(selectedId)) {
+                            opt.selected = true;
+                        }
+                        group.appendChild(opt);
+                    });
+                    stageSelect.appendChild(group);
+                });
+            }
+
+            function applyStageWeight() {
+                const stage = stageOptions.find((st) => String(st.id) === stageSelect.value);
+                if (stage) {
+                    progressInput.value = stage.weight;
+                }
+            }
+
+            // Pilih pekerjaan -> daftar tahapan sesuai kategori pekerjaan, tahapan ikut tahapan terakhir pekerjaan.
+            jobSelect?.addEventListener('change', function(e) {
+                const selected = e.target.options[e.target.selectedIndex];
+                const categoryId = selected.getAttribute('data-category');
+                const lastStageId = selected.getAttribute('data-stage');
+                populateStages(categoryId, lastStageId);
+                if (lastStageId) {
+                    applyStageWeight();
+                } else if (selected.getAttribute('data-progress') !== null) {
+                    progressInput.value = selected.getAttribute('data-progress');
                 }
             });
 
             // Pilih tahapan -> progress otomatis ikut bobotnya (tetap bisa diubah manual).
-            stageSelect?.addEventListener('change', function(e) {
-                const weight = stageWeights[e.target.value];
-                if (weight !== undefined) {
-                    progressInput.value = weight;
-                }
-            });
+            stageSelect.addEventListener('change', applyStageWeight);
+
+            // Pre-fill saat edit / setelah validasi gagal.
+            if (jobSelect && jobSelect.value) {
+                const selected = jobSelect.options[jobSelect.selectedIndex];
+                populateStages(selected.getAttribute('data-category'), initialStageId);
+            }
         })();
     </script>
 @endpush

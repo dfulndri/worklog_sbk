@@ -10,25 +10,28 @@
             <div>
                 <p class="eyebrow mb-1">Master Data</p>
                 <h1 class="h3 mb-1">Tahapan Proses</h1>
-                <p class="text-muted mb-0">Tahapan pekerjaan beserta bobot progress dan grupnya.</p>
+                <p class="text-muted mb-0">Tahapan tiap kategori, dikelompokkan Progress 1-4 (25% / 50% / 75% / 100%).</p>
             </div>
         </div>
         <div class="heading-actions">
-            <a href="{{ route('admin.job-stages.create') }}" class="btn btn-primary btn-sm">
+            <a href="{{ route('admin.job-stages.create', ['kategori_id' => $kategoriId]) }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus-lg" aria-hidden="true"></i> Tambah
             </a>
         </div>
     </div>
 
     <section class="panel mt-3">
+        @php $currentKategoriId = $kategoriId; @endphp
+        @include('admin.job-stages._tabs')
+
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead>
                     <tr>
                         <th scope="col">#</th>
                         <th scope="col">Tahapan</th>
-                        <th scope="col">Bobot (Progress)</th>
-                        <th scope="col">Grup</th>
+                        <th scope="col">Progress</th>
+                        <th scope="col">Bobot</th>
                         <th scope="col" class="text-end">Aksi</th>
                     </tr>
                 </thead>
@@ -37,13 +40,8 @@
                         <tr>
                             <td>{{ $stage->order_no }}</td>
                             <td class="fw-semibold">{{ $stage->name }}</td>
-                            <td>
-                                <div class="progress" style="height: 6px; min-width: 100px;">
-                                    <div class="progress-bar" role="progressbar" style="width: {{ $stage->weight }}%"></div>
-                                </div>
-                                <small class="text-muted">{{ $stage->weight }}%</small>
-                            </td>
-                            <td><span class="badge {{ $stage->groupBadge() }}">{{ $stage->groupLabel() }}</span></td>
+                            <td><span class="badge {{ $stage->phaseBadge() }}">{{ $stage->phaseLabel() }}</span></td>
+                            <td>{{ $stage->weight }}%</td>
                             <td class="text-end">
                                 <a class="btn btn-light btn-sm" href="{{ route('admin.job-stages.edit', $stage) }}">
                                     <i class="bi bi-pencil" aria-hidden="true"></i>
@@ -61,14 +59,12 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">Belum ada tahapan.</td>
+                            <td colspan="5" class="text-center text-muted py-4">Belum ada tahapan di kategori ini.
+                                Jalankan JobStageSeeder atau tambah manual.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        @if ($stages->hasPages())
-            <div class="p-3">{{ $stages->links('pagination::bootstrap-5') }}</div>
-        @endif
     </section>
 @endsection

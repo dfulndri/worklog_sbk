@@ -51,7 +51,9 @@
                             </td>
                             <td>
                                 @if ($job->stage)
-                                    <span class="badge {{ $job->stage->groupBadge() }}">{{ $job->stage->name }}</span>
+                                    <span
+                                        class="badge {{ $job->stage->phaseBadge() }}">{{ $job->stage->phaseLabel() }}</span>
+                                    <small class="text-muted">{{ $job->stage->name }}</small>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif

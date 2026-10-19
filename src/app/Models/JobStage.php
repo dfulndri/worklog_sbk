@@ -6,29 +6,55 @@ use Illuminate\Database\Eloquent\Model;
 
 class JobStage extends Model
 {
-    public const GROUPS = [
-        'draft' => 'Draft',
-        'revisi' => 'Revisi',
-        'sidang' => 'Sidang',
-        'final' => 'Final',
+    public const PHASES = [
+        1 => 'Progress 1',
+        2 => 'Progress 2',
+        3 => 'Progress 3',
+        4 => 'Progress 4',
     ];
 
-    public const GROUP_BADGES = [
-        'draft' => 'text-bg-secondary',
-        'revisi' => 'text-bg-warning',
-        'sidang' => 'text-bg-info',
-        'final' => 'text-bg-success',
+    public const PHASE_BADGES = [
+        1 => 'text-bg-secondary',
+        2 => 'text-bg-info',
+        3 => 'text-bg-warning',
+        4 => 'text-bg-success',
     ];
 
-    protected $fillable = ['name', 'weight', 'group', 'order_no'];
+    /** Bobot tiap Progress (kumulatif): Progress 1 = 25%, ... Progress 4 = 100%. */
+    public const PHASE_WEIGHT = 25;
 
-    public function groupLabel(): string
+    protected $fillable = ['category_id', 'name', 'phase', 'weight', 'order_no'];
+
+    protected function casts(): array
     {
-        return self::GROUPS[$this->group] ?? ucfirst($this->group);
+        return [
+            'category_id' => 'integer',
+            'phase' => 'integer',
+            'weight' => 'integer',
+            'order_no' => 'integer',
+        ];
     }
 
-    public function groupBadge(): string
+    protected static function booted(): void
     {
-        return self::GROUP_BADGES[$this->group] ?? 'text-bg-secondary';
+        // Bobot selalu diturunkan dari Progress, tidak diisi manual.
+        static::saving(function (self $stage) {
+            $stage->weight = (int) $stage->phase * self::PHASE_WEIGHT;
+        });
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(DocumentCategory::class, 'category_id');
+    }
+
+    public function phaseLabel(): string
+    {
+        return self::PHASES[$this->phase] ?? 'Progress ' . $this->phase;
+    }
+
+    public function phaseBadge(): string
+    {
+        return self::PHASE_BADGES[$this->phase] ?? 'text-bg-secondary';
     }
 }

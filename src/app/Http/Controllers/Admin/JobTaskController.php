@@ -18,9 +18,19 @@ class JobTaskController extends Controller
 {
     public function index(Request $request)
     {
+        $kategoriId = $request->input('kategori_id');
+        $bidangId = $request->input('bidang_id');
+
         $jobs = JobTask::with(['client', 'employee.user', 'documentCategory.parent.parent', 'stage'])
-            ->when($request->filled('stage_id'), fn($q) => $q->where('stage_id', $request->stage_id))
             ->when($request->filled('client_id'), fn($q) => $q->where('client_id', $request->client_id))
+            ->when($kategoriId, fn($q) => $q->whereHas('stage', fn($s) => $s->where('category_id', $kategoriId)))
+            ->when($bidangId, function ($q) use ($bidangId) {
+                $q->where(function ($sub) use ($bidangId) {
+                    $sub->where('document_category_id', $bidangId)
+                        ->orWhereHas('documentCategory', fn($d) => $d->where('parent_id', $bidangId));
+                });
+            })
+            ->when($request->filled('phase'), fn($q) => $q->whereHas('stage', fn($s) => $s->where('phase', $request->phase)))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $search = $request->search;
                 $q->where(function ($sub) use ($search) {
@@ -35,9 +45,12 @@ class JobTaskController extends Controller
             ->withQueryString();
 
         $clients = Client::orderBy('name')->get();
-        $stages = JobStage::orderBy('order_no')->get();
+        $kategoriList = DocumentCategory::where('level', 'kategori')->orderBy('sort_order')->get();
+        $bidangList = DocumentCategory::where('level', 'sub_kategori')
+            ->when($kategoriId, fn($q) => $q->where('parent_id', $kategoriId))
+            ->orderBy('sort_order')->get();
 
-        return view('admin.jobs.index', compact('jobs', 'clients', 'stages'));
+        return view('admin.jobs.index', compact('jobs', 'clients', 'kategoriList', 'bidangList'));
     }
 
     public function create()
@@ -144,6 +157,13 @@ class JobTaskController extends Controller
             $data['authority_id'] = null;
         }
 
+        $stage = JobStage::findOrFail($data['stage_id']);
+        if ($stage->category_id !== $category->kategoriId()) {
+            throw ValidationException::withMessages([
+                'stage_id' => 'Tahapan tidak sesuai dengan kategori dokumen yang dipilih.',
+            ]);
+        }
+
         return $data;
     }
 
@@ -154,7 +174,14 @@ class JobTaskController extends Controller
         $experts = Expert::orderBy('name')->get();
         $employees = Employee::with('user')->get();
         $authorities = Authority::orderBy('sort_order')->get();
-        $stages = JobStage::orderBy('order_no')->get();
+        $stageOptionsJs = JobStage::orderBy('order_no')->get()
+            ->map(fn($st) => [
+                'id' => $st->id,
+                'name' => $st->name,
+                'phase' => $st->phase,
+                'category_id' => $st->category_id,
+                'weight' => $st->weight,
+            ])->values()->all();
 
         $kategoriList = DocumentCategory::where('level', 'kategori')->orderBy('sort_order')->get();
 
@@ -183,7 +210,7 @@ class JobTaskController extends Controller
             'experts',
             'employees',
             'authorities',
-            'stages',
+            'stageOptionsJs',
             'kategoriList',
             'subKategoriOptionsJs',
             'dokumenOptionsJs'
